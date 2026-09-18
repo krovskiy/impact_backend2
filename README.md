@@ -1,6 +1,6 @@
 # Lesson 1 Backend Catch-up Starter
 
-A deliberately **almost-complete** Spring Boot project for students who are behind on Lesson 1. It starts successfully, has the required package structure, and shows where to work. The remaining Lesson 1 work is marked with `TODO Lesson 1` comments.
+https://github.com/Victoras23/impact_2_year_fe
 
 ## What you need to install
 
@@ -64,23 +64,6 @@ The GET endpoint already works and returns:
 api initialised
 ```
 
-## What the student still has to do
-
-Search the project for:
-
-```text
-TODO Lesson 1
-```
-
-The important files are:
-
-```text
-src/main/java/com/impact/ecommerce/config/CorsConfig.java
-src/main/java/com/impact/ecommerce/controllers/PracticeController.java
-```
-
-The goal is to finish CORS and the 5 HTTP verbs without having to rebuild the entire project from zero.
-
 ## Postman examples
 
 Base URL:
@@ -94,22 +77,6 @@ For POST / PUT / PATCH / DELETE, choose `Body -> raw -> JSON` and send for examp
 ```json
 {"name":"demo"}
 ```
-
-## Frontend used for checking the homework
-
-```text
-https://github.com/Victoras23/impact_2_year_fe.git
-```
-
-Recommended classroom workflow from the provided resources: pull `main` at the start of a lesson so the frontend contains the resources for that lesson.
-
-## Reference backend repository
-
-```text
-https://github.com/Victoras23/impact_2_year_be.git
-```
-
-The provided resources say students can use the `students_init` branch as the empty starting point. This ZIP is an easier catch-up starter because most Lesson 1 scaffolding already exists.
 
 ## Suggested Git workflow
 
@@ -149,7 +116,3 @@ If GET works but the other 4 checks fail, finish the TODO strings in `PracticeCo
 ## Romanian quick note
 
 Proiectul pornește deja. Caută `TODO Lesson 1`, completează CORS și răspunsurile pentru POST/PUT/PATCH/DELETE, testează în Postman, apoi verifică frontend-ul până ai 5/5.
-
-## Русская памятка
-
-Проект уже запускается. Найди `TODO Lesson 1`, закончи CORS и ответы POST/PUT/PATCH/DELETE, проверь их в Postman, затем подключи frontend и добейся результата 5/5.
