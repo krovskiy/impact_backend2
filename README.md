@@ -2,6 +2,8 @@
 
 https://github.com/Victoras23/impact_2_year_fe
 
+`powershell -ExecutionPolicy Bypass -File .\install-java17-java21-maven.ps1`
+
 ## What you need to install
 
 ### 1) Java
