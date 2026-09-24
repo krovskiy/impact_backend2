@@ -1,5 +1,5 @@
 #Requires -Version 5.1
-param([switch]$Database, [switch]$CheckLessons, [switch]$Run, [ValidateRange(1, 65535)][int]$Port = 8080)
+param([switch]$Redis, [switch]$Database, [switch]$CheckLessons, [switch]$Run, [ValidateRange(1, 65535)][int]$Port = 8080)
 $ErrorActionPreference = 'Stop'
 
 Set-StrictMode -Version Latest
@@ -169,11 +169,133 @@ function Install-WindowsCommand {
     }
 }
 
+
+function Get-LocalRedisState {
+    $client = New-Object Net.Sockets.TcpClient
+    try {
+        $pending = $client.BeginConnect('127.0.0.1', 6379, $null, $null)
+        if (-not $pending.AsyncWaitHandle.WaitOne(1500)) { return 'closed' }
+        try { $client.EndConnect($pending) } catch { return 'closed' }
+        $stream = $client.GetStream()
+        $stream.ReadTimeout = 1500
+        $stream.WriteTimeout = 1500
+        $bytes = [Text.Encoding]::ASCII.GetBytes("PING`r`n")
+        $stream.Write($bytes, 0, $bytes.Length)
+        $reader = New-Object IO.StreamReader($stream)
+        if ($reader.ReadLine() -eq '+PONG') { return 'ready' }
+        return 'occupied'
+    } catch {
+        return 'occupied'
+    } finally {
+        $client.Dispose()
+    }
+}
+
+function Get-MemuraiCli {
+    $command = Get-Command memurai-cli.exe -ErrorAction SilentlyContinue
+    if ($command) { return $command.Source }
+    $candidate = Join-Path $env:ProgramFiles 'Memurai\memurai-cli.exe'
+    if (Test-Path -LiteralPath $candidate -PathType Leaf) { return $candidate }
+    return $null
+}
+
+
+function Invoke-MemuraiInstaller {
+    $winget = (Get-Command winget -ErrorAction Stop).Source
+    $logDirectory = Join-Path $env:LOCALAPPDATA 'impact-backend\setup-logs'
+    New-Item -ItemType Directory -Force -Path $logDirectory | Out-Null
+    $log = Join-Path $logDirectory ('memurai-' + [guid]::NewGuid().ToString('N') + '.log')
+    $arguments = @('install', '--id', 'Memurai.MemuraiDeveloper', '--exact', '--source', 'winget',
+        '--accept-package-agreements', '--accept-source-agreements', '--silent',
+        '--override', '/quiet /norestart INSTALL_SERVICE=1 PORT=6379 ADD_INSTALLFOLDER_TO_PATH=1 ADD_FIREWALL_RULE=0')
+    # Elevate before WinGet invokes MSI; its direct MSI API can otherwise fail with 1603.
+    # Encode PowerShell source to preserve paths/arguments through the UAC launch.
+    $quotedArguments = @($arguments | ForEach-Object { "'" + $_.Replace("'", "''") + "'" })
+    $command = '$ErrorActionPreference = "Continue"; & ' + "'" + $winget.Replace("'", "''") + "' " +
+        ($quotedArguments -join ' ') + " *> '" + $log.Replace("'", "''") + "'" + '; exit $LASTEXITCODE'
+    $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($command))
+    try {
+        $process = Start-Process -FilePath "$PSHOME\powershell.exe" -Verb RunAs -WindowStyle Hidden -Wait -PassThru -ArgumentList @('-NoProfile', '-EncodedCommand', $encoded)
+    } catch {
+        throw 'Memurai installation needs administrator approval. Accept the Windows prompt when you rerun .\setup.cmd redis.'
+    }
+    if ($process.ExitCode -ne 0) {
+        throw "Memurai installation failed (exit $($process.ExitCode)). Installer output: $log . Check that log before retrying."
+    }
+}
+
+function Install-Memurai {
+    param([switch]$RequireNative)
+    $state = Get-LocalRedisState
+    $service = Get-Service -Name 'Memurai' -ErrorAction SilentlyContinue
+    if ($state -eq 'ready') {
+        if ($RequireNative -and (-not $service -or $service.Status -ne 'Running')) {
+            throw 'Redis already uses port 6379. To replace the lesson Docker instance, run: docker compose -f database/compose.yaml stop redis ; then rerun .\setup.cmd redis. Setup will not stop it for you.'
+        }
+        Write-Host 'Redis is already answering PONG on localhost:6379.'
+        $cli = Get-MemuraiCli
+        if ($cli) { Write-Host "CLI: & '$cli' ping" }
+        else { Write-Host 'For the lesson Docker instance: docker compose -f database/compose.yaml exec -T redis redis-cli ping' }
+        return
+    }
+    if ($state -eq 'occupied') {
+        throw 'Port 6379 is occupied or Redis requires authentication. Check your existing server and application-local.properties; setup will not replace its configuration.'
+    }
+    $cli = Get-MemuraiCli
+    if (-not $service -and -not $cli) {
+        $architecture = $env:PROCESSOR_ARCHITEW6432
+        if (-not $architecture) { $architecture = $env:PROCESSOR_ARCHITECTURE }
+        if ($architecture -ne 'AMD64') { throw 'Automatic Memurai installation requires x64 Windows. See database/README.md for other Redis options.' }
+        if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+            throw 'Install/update App Installer from Microsoft Store, then rerun .\setup.cmd redis.'
+        }
+        Write-Host 'Installing Memurai Developer for local lessons. Accept the Windows administrator prompt.'
+        Invoke-MemuraiInstaller
+        $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User') + ';' + $env:Path
+        $service = Get-Service -Name 'Memurai' -ErrorAction SilentlyContinue
+    }
+    if (-not $service) {
+        throw 'Memurai is installed without its Windows service. Repair the installation with the service option enabled, then rerun .\setup.cmd redis. Existing settings were retained.'
+    }
+    if ($service.Status -ne 'Running') {
+        $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+        $principal = New-Object Security.Principal.WindowsPrincipal($identity)
+        if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+            Start-Service -Name 'Memurai'
+        } else {
+            $command = '$ErrorActionPreference = "Stop"; try { Start-Service -Name "Memurai"; exit 0 } catch { exit 1 }'
+            $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($command))
+            $process = Start-Process -FilePath "$PSHOME\powershell.exe" -Verb RunAs -WindowStyle Hidden -Wait -PassThru -ArgumentList @('-NoProfile', '-EncodedCommand', $encoded)
+            if ($process.ExitCode -ne 0) { throw 'Could not start Memurai. Check the Windows service and port 6379, then rerun .\setup.cmd redis.' }
+        }
+    }
+    for ($attempt = 0; $attempt -lt 15; $attempt++) {
+        if ((Get-LocalRedisState) -eq 'ready') {
+            Write-Host 'Memurai is ready on localhost:6379 (PONG).'
+            $cli = Get-MemuraiCli
+            if ($cli) { Write-Host "CLI: & '$cli' ping" }
+            return
+        }
+        Start-Sleep -Seconds 1
+    }
+    throw 'Memurai did not answer PONG on localhost:6379. Check its service/configuration and rerun .\setup.cmd redis.'
+}
+
 # Dot-sourcing exposes helpers for offline tests without running setup.
 if ($MyInvocation.InvocationName -eq '.') { return }
 
 Set-Location -LiteralPath (Split-Path -Parent $PSScriptRoot)
 
+if ($Redis) {
+    try {
+        Install-Memurai -RequireNative
+        Write-Host 'To enable Lesson 3 caching, set spring.cache.type=redis in application-local.properties and restart the backend.'
+        exit 0
+    } catch {
+        Write-Host $_.Exception.Message -ForegroundColor Red
+        exit 1
+    }
+}
 if ($Database) {
     try {
         if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
@@ -225,8 +347,9 @@ $ProgressPreference = 'SilentlyContinue'
 $script:DownloadDir = $null
 Push-Location -LiteralPath (Split-Path -Parent $PSScriptRoot)
 try {
-    Write-Host 'SETUP: Java 21, Maven, Git and build.' -ForegroundColor Cyan
+    Write-Host 'SETUP: Java 21, Maven, Git, Memurai/Redis and build.' -ForegroundColor Cyan
     Install-WindowsCommand git 'Git.Git'
+    Install-Memurai
     Sync-Frontend (Get-Location).Path
     $script:DownloadDir = Join-Path ([IO.Path]::GetTempPath()) ("impact-setup-" + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $script:DownloadDir | Out-Null

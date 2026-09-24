@@ -6,8 +6,9 @@ trap 'printf "\nSetup failed at line %s. Fix the error above, then rerun: bash s
 [[ "$(uname -s)" == Darwin ]] || fail 'This script is for macOS. Use setup.cmd on Windows or setup.sh on Debian.'
 case "${1:-}" in
     '') setup_main mac ;;
+    redis) redis_main mac ;;
     db) database_main ;;
     check) check_lessons ;;
     run) start_main "${2:-8080}" ;;
-    *) fail 'Use bash setup.sh [db|run|check].' ;;
+    *) fail 'Use bash setup.sh [redis|db|run|check].' ;;
 esac

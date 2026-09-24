@@ -1,6 +1,8 @@
 @echo off
 setlocal
-if /I "%~1"=="db" (
+if /I "%~1"=="redis" (
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\setup-windows.ps1" -Redis
+) else if /I "%~1"=="db" (
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\setup-windows.ps1" -Database
 ) else if /I "%~1"=="check" (
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\setup-windows.ps1" -CheckLessons
