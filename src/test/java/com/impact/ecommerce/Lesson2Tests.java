@@ -131,7 +131,7 @@ class Lesson2Tests {
 
     // Opt-in completion checks. These are supposed to fail until students finish all six TODOs.
     @Test
-    @Tag("lesson2-complete")
+    @Tag("lesson-complete")
     void checkpointFilteringAndDtoMapping() throws Exception {
         mvc.perform(get("/api/products").param("category", categoryId.toString()))
                 .andExpect(status().isOk())
@@ -142,7 +142,7 @@ class Lesson2Tests {
     }
 
     @Test
-    @Tag("lesson2-complete")
+    @Tag("lesson-complete")
     void checkpointRegistrationHashesPasswordsAndCannotGrantAdmin() throws Exception {
         mvc.perform(post("/api/auth/register").contentType("application/json")
                 .content("{\"email\":\"Student@example.com\",\"password\":\"password123\",\"role\":\"ADMIN\"}"))
@@ -157,7 +157,7 @@ class Lesson2Tests {
     }
 
     @Test
-    @Tag("lesson2-complete")
+    @Tag("lesson-complete")
     void checkpointJwtLoginAndRoleBoundaries() throws Exception {
         String token = login("user@impact.md", "user123");
         mvc.perform(get("/api/test/protected").header("Authorization", "Bearer " + token))

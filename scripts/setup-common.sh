@@ -182,12 +182,12 @@ database_main() {
     printf 'PostgreSQL is ready. Next: bash setup.sh run\n'
 }
 
-check_lesson2() {
+check_lessons() {
     local environment="$HOME/.local/share/impact-backend/toolchains/env.sh"
     [[ -f "$environment" ]] || fail 'Run bash setup.sh first.'
     source "$environment"
-    printf 'Checking Lesson 2. Failures are expected until all six TODOs are complete.\n'
-    exec "$MAVEN_HOME/bin/mvn" -f "$PWD/pom.xml" --batch-mode --no-transfer-progress -Plesson2-check test
+    printf 'Checking all lesson answers. Failures are expected until the exercises are complete.\n'
+    exec "$MAVEN_HOME/bin/mvn" -f "$PWD/pom.xml" --batch-mode --no-transfer-progress -Plesson-check test
 }
 
 

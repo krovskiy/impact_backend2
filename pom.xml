@@ -14,13 +14,13 @@
     <groupId>com.impact</groupId>
     <artifactId>lesson1-backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>lesson1-backend</name>
-    <description>Lesson 1 and 2 classroom catch-up starter</description>
+    <name>impact-backend</name>
+    <description>Classroom backend for incremental lessons</description>
 
     <properties>
         <java.version>21</java.version>
         <maven.compiler.release>21</maven.compiler.release>
-        <excludedGroups>lesson2-complete</excludedGroups>
+        <excludedGroups>lesson-complete</excludedGroups>
     </properties>
 
     <dependencies>
@@ -86,6 +86,15 @@
             <resource>
                 <directory>src/main/resources</directory>
             </resource>
+            <resource>
+                <directory>database</directory>
+                <targetPath>database</targetPath>
+                <filtering>false</filtering>
+                <includes>
+                    <include>create_tables.sql</include>
+                    <include>insert_data.sql</include>
+                </includes>
+            </resource>
             <!-- The upstream index bundles its own JavaScript/CSS. Never publish the Git checkout. -->
             <resource>
                 <directory>${project.basedir}/frontend</directory>
@@ -105,9 +114,9 @@
     </build>
     <profiles>
         <profile>
-            <id>lesson2-check</id>
+            <id>lesson-check</id>
             <properties>
-                <excludedGroups>lesson2-starter</excludedGroups>
+                <excludedGroups>lesson-starter</excludedGroups>
             </properties>
         </profile>
     </profiles>

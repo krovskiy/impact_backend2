@@ -14,7 +14,7 @@ Suggested 35-minute lesson:
 
 Entities, repositories, SQL, validation, controllers, authorization and error responses are prepared. Students change six small sections. Unfinished authentication stays blocked. Register returns a token to match the existing frontend; students cannot request ADMIN during registration. Tokens expire after one hour; the default signing key changes on restart, so log in again.
 
-Normal `mvn test` checks the prepared starter; `mvn -Plesson2-check test` also checks the student answers. Tests use H2, not the classroom database. Native PostgreSQL smoke checks still matter. The frontend is fetched by the run launcher and is never edited or pushed by these changes.
+Normal `mvn test` checks the prepared starter; `mvn -Plesson-check test` also checks the student answers. Tests use H2, not the classroom database. Native PostgreSQL smoke checks still matter. The frontend is fetched by the run launcher and is never edited or pushed by these changes.
 
 ## Answer key
 
@@ -64,3 +64,10 @@ SecurityContextHolder.getContext().setAuthentication(authentication);
 ```
 
 After all six, the completion checks must pass. Use the seeded USER and ADMIN accounts from the student checklist to demonstrate role boundaries. Lesson 1 TODOs are retained for students still catching up.
+
+## Adding future lessons
+
+Keep the same setup/run/check commands. Add the next checklist and link it from README.
+Mark student completion tests with `@Tag("lesson-complete")`; normal starter builds skip these, and `mvn -Plesson-check test` runs them all.
+Keep exercise-specific labels such as L2-1 or L3-1 in the source. Main holds exercises; solution holds answers.
+The shared SQL runs before JPA validation on each startup. New SQL must be safe to rerun and preserve existing student data. Existing table changes need explicit schema updates; CREATE TABLE IF NOT EXISTS does not upgrade columns.

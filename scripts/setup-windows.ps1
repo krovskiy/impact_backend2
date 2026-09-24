@@ -1,5 +1,5 @@
 #Requires -Version 5.1
-param([switch]$Database, [switch]$CheckLesson2, [switch]$Run, [ValidateRange(1, 65535)][int]$Port = 8080)
+param([switch]$Database, [switch]$CheckLessons, [switch]$Run, [ValidateRange(1, 65535)][int]$Port = 8080)
 $ErrorActionPreference = 'Stop'
 
 Set-StrictMode -Version Latest
@@ -189,11 +189,11 @@ if ($Database) {
     }
 }
 
-if ($CheckLesson2) {
+if ($CheckLessons) {
     try {
         Enable-Toolchain
-        Write-Host 'Checking Lesson 2. Failures are expected until all six TODOs are complete.'
-        Invoke-Checked "$env:MAVEN_HOME\bin\mvn.cmd" @('-f', (Join-Path (Split-Path -Parent $PSScriptRoot) 'pom.xml'), '--batch-mode', '--no-transfer-progress', '-Plesson2-check', 'test')
+        Write-Host 'Checking all lesson answers. Failures are expected until the exercises are complete.'
+        Invoke-Checked "$env:MAVEN_HOME\bin\mvn.cmd" @('-f', (Join-Path (Split-Path -Parent $PSScriptRoot) 'pom.xml'), '--batch-mode', '--no-transfer-progress', '-Plesson-check', 'test')
         exit 0
     } catch {
         Write-Host $_.Exception.Message -ForegroundColor Red
@@ -214,7 +214,7 @@ if ($Run) {
         exit 0
     } catch {
         Write-Host $_.Exception.Message -ForegroundColor Red
-        Write-Host 'If the port is busy, run: .\setup.cmd run 8081'
+        Write-Host 'Check the error above: PostgreSQL must be running with the configured database and password. For a busy HTTP port, use .\setup.cmd run 8081'
         exit 1
     }
 }
