@@ -10,6 +10,13 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+    @ExceptionHandler({org.springframework.data.redis.RedisConnectionFailureException.class,
+            org.springframework.dao.QueryTimeoutException.class})
+    ResponseEntity<Map<String, String>> cacheUnavailable(Exception error) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(Map.of("error", "Redis is unavailable. Start Redis, or set spring.cache.type=none for earlier lessons."));
+    }
+
     @ExceptionHandler(ResponseStatusException.class)
     ResponseEntity<Map<String, String>> status(ResponseStatusException error) {
         return ResponseEntity.status(error.getStatusCode()).body(Map.of("error",

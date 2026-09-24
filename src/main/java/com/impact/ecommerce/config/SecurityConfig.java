@@ -48,6 +48,8 @@ public class SecurityConfig {
                         .dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.FORWARD).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/", "/index.html", "/favicon.ico", "/error").permitAll()
+                        .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs", "/v3/api-docs/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/cache/clear").permitAll()
                         .requestMatchers("/api/auth/register", "/api/auth/login", "/api/practice", "/api/practice/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products", "/api/categories").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")

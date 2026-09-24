@@ -23,15 +23,18 @@ Run commands from the project folder:
 
 Keep PostgreSQL running. After **Started**, open **http://localhost:8080/**. **Ctrl+C** stops the backend; restart after editing.
 
-**Answers for the included lessons are completed here.** All lesson checks should pass. Student exercises are on [main](https://github.com/krovskiy/impact_backend2_starter/tree/main); more lessons will be added over time.
+**Completed answers for Lessons 1, 2 and 3 are on this branch.** Student TODOs are on [main](https://github.com/krovskiy/impact_backend2_starter/tree/main). Follow [Lesson 3](LESSON3_CHECKLIST.md) to enable Redis and test Swagger.
 
 ## 4. Save to your GitHub
 
 ```sh
+git switch -c feature/my-lesson
 git add .
 git commit -m "Complete lesson exercises"
-git push origin HEAD
+git push -u origin HEAD
 ```
+
+Open a pull request to your own main and review the diff. Lesson 3 adds optional Redis and Swagger: follow its checklist.
 
 Setup keeps your repository's origin and does not commit or push for you.
 

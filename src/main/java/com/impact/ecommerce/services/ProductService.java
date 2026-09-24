@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 
 @Service
 @Transactional(readOnly = true)
@@ -20,6 +22,8 @@ public class ProductService {
         this.categories = categories;
     }
 
+    // Answer Lesson 3 L3-1: uncomment caching with a separate key for each category.
+    @Cacheable(cacheNames = "products", key = "#categoryId != null ? #categoryId : 'all'")
     public List<ProductResponse> list(Long categoryId) {
         return selectProducts(categoryId).stream().map(this::toResponse).toList();
     }
@@ -39,20 +43,28 @@ public class ProductService {
                 product.getPrice(), product.getStock(), category == null ? null : category.getId(), categoryName);
     }
 
+    // Answer Lesson 3 L3-2: uncomment caching for the category DTO list.
+    @Cacheable(cacheNames = "categories", key = "'all'")
     public List<CategoryResponse> categories() {
         return categories.findAll().stream().map(c -> new CategoryResponse(c.getId(), c.getName())).toList();
     }
 
+    // Answer Lesson 3 L3-3: uncomment on ALL three writes to invalidate every filtered list.
+    @CacheEvict(cacheNames = "products", allEntries = true)
     @Transactional
     public ProductResponse create(CreateProductRequest request) {
         return toResponse(products.save(apply(new Product(), request)));
     }
 
+    // Answer Lesson 3 L3-3: uncomment on ALL three writes to invalidate every filtered list.
+    @CacheEvict(cacheNames = "products", allEntries = true)
     @Transactional
     public ProductResponse update(Long id, CreateProductRequest request) {
         return toResponse(products.save(apply(find(id), request)));
     }
 
+    // Answer Lesson 3 L3-3: uncomment on ALL three writes to invalidate every filtered list.
+    @CacheEvict(cacheNames = "products", allEntries = true)
     @Transactional
     public void delete(Long id) { products.delete(find(id)); }
 
