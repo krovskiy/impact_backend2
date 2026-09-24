@@ -1,49 +1,49 @@
-# Lesson 3: teacher guide and answers
+# Lecția 3: ghid pentru profesor și răspunsuri
 
-Based on the supplied Romanian Lesson 3 slides and homework: Redis cache-aside, 60-second TTL, invalidation, Swagger/JWT, and feature-branch PRs. The documents define classroom exercises; they do not authorize repository protection changes or external review requests.
+Bazat pe prezentarea și tema furnizate: Redis, cache-aside, TTL de 60 de secunde, invalidare, Swagger/JWT și lucru prin ramuri/PR-uri. Regulile din materiale sunt exerciții pentru clasă, nu autorizații de modificare a protecției repository-ului.
 
-## 40-minute plan
+## Plan de 40 de minute
 
-| Minutes | Together |
+| Minute | Activitate |
 | --- | --- |
-| 0-5 | Start PostgreSQL and Redis; finish any Lesson 2 auth gaps. |
-| 5-15 | Explain miss/hit and keys. Complete L3-1/L3-2; inspect Redis TTL. |
-| 15-23 | Complete L3-3/L3-4. Change a product and prove stale values are removed. |
-| 23-30 | Complete L3-5/L3-6; use Swagger Authorize and show 401/403/200. |
-| 30-40 | Run checks, create a feature branch, commit, push, and review a PR. |
+| 0–5 | Porniți PostgreSQL și Redis; terminați autentificarea din lecția 2. |
+| 5–15 | Explicați hit/miss și cheile. L3-1/L3-2 și verificarea TTL. |
+| 15–23 | L3-3/L3-4: modificați un produs și demonstrați invalidarea. |
+| 23–30 | L3-5/L3-6: Swagger Authorize și 401/403/200. |
+| 30–40 | Teste, ramură de lucru, commit, push și verificarea unui PR. |
 
-Dependencies, typed JSON serialization, TTL, route access and most Swagger annotations are prepared. `ProductService.categories()` serves the role of the slides' separate CategoryService to avoid an extra class. Redis is disabled by default for earlier lessons; enable it as described in [database setup](../database/README.md#lesson-3-redis-optional-for-earlier-lessons).
+Dependențele, serializarea JSON, TTL-ul și majoritatea adnotărilor Swagger sunt pregătite. `ProductService.categories()` îndeplinește rolul serviciului separat de categorii din prezentare. [Configurare Redis](../database/README.md#redis-pentru-lectia-3).
 
-## Answer key
+## Răspunsuri
 
-**L3-1**, above `ProductService.list`:
+**L3-1**, deasupra `ProductService.list`:
 
 ```java
 @Cacheable(cacheNames = "products", key = "#categoryId != null ? #categoryId : 'all'")
 ```
 
-**L3-2**, above `ProductService.categories`:
+**L3-2**, deasupra `ProductService.categories`:
 
 ```java
 @Cacheable(cacheNames = "categories", key = "'all'")
 ```
 
-**L3-3**, above each of `create`, `update`, and `delete`:
+**L3-3**, deasupra fiecărei metode `create`, `update`, `delete`:
 
 ```java
 @CacheEvict(cacheNames = "products", allEntries = true)
 ```
 
-Keep `@Transactional`. The Redis manager is transaction-aware, so invalidation is applied after commit. Clear every category variant, since a product can move categories.
+Păstrează `@Transactional`. Managerul Redis aplică invalidarea după commit. Trebuie eliminate toate variantele filtrate, deoarece produsul își poate schimba categoria.
 
-**L3-4**, replace the placeholder method in `CatalogCacheService`:
+**L3-4**, în `CatalogCacheService`:
 
 ```java
 @CacheEvict(cacheNames = {"products", "categories"}, allEntries = true)
 public void clear() { }
 ```
 
-**L3-5**, after `Components components = new Components();`:
+**L3-5**, după `Components components = new Components();`:
 
 ```java
 components.addSecuritySchemes("bearerAuth", new SecurityScheme()
@@ -52,24 +52,24 @@ components.addSecuritySchemes("bearerAuth", new SecurityScheme()
         .bearerFormat("JWT"));
 ```
 
-**L3-6**, above the product GET route:
+**L3-6**, deasupra rutei GET pentru produse:
 
 ```java
 @Operation(summary = "List products, optionally filtered by category")
 ```
 
-Review the prepared `@Tag`, `@ApiResponse` and protected-route `@SecurityRequirement` annotations. An empty product result is 200 with `[]`, not 404. Swagger login/register remain public; protected routes carry `bearerAuth`.
+Descrierea rămâne exactă pentru testul de completare. Recitiți adnotările `@Tag`, `@ApiResponse` și `@SecurityRequirement`. O listă fără rezultate este 200 cu `[]`, nu 404. Login/register sunt publice.
 
-## Verification and design notes
+## Verificări și explicații
 
-Follow [the student checklist](../LESSON3_CHECKLIST.md). `setup check` uses an in-memory cache plus repository spies to verify hits, independent keys, all three write invalidations, manual clearing and OpenAPI. Separate tests verify the Redis serialization and 60-second TTL configuration. Students must also inspect a running Redis server; an in-memory test does not prove Redis connectivity.
+Urmați [lista elevului](../LESSON3_CHECKLIST.md). Testele verifică hit-uri, chei separate, cele trei invalidări, golirea manuală, Swagger, serializarea și configurarea TTL. Pentru comportamentul cache folosesc memorie și verifică apelurile repository-ului; verificați și serverul Redis real.
 
-Only public product/category DTOs are cached. No passwords, tokens or JPA entities enter Redis. Keys are `products::all`, `products::<id>` and `categories::all`. The prefix and cache names are shared by the two reference branches; clear the catalog caches when switching branches against the same Redis instance.
+Cache-ul conține numai DTO-uri publice, nu entități JPA, parole sau tokenuri. Cheile sunt `products::all`, `products::<id>` și `categories::all`. Goliți cache-ul când schimbați ramura folosind aceeași instanță Redis.
 
-The supplied frontend calls cache clear without a token. `/api/cache/clear` is therefore public in this localhost-only classroom app, and touches only the two catalog caches, never FLUSHALL or the database. In an externally deployed app, restrict it and update the frontend auth flow. When caching is disabled, a completed clear action is a no-op. With Redis enabled but unavailable, cache access returns 503 with an actionable message.
+Frontend-ul trimite golirea fără token; ruta este publică în această aplicație locală și golește numai cele două cache-uri. Nu execută FLUSHALL și nu șterge datele PostgreSQL. Pentru publicarea aplicației în afara calculatorului, restricționați ruta și adaptați frontend-ul.
 
-TTL limits stale data but is not a full concurrency guarantee: a read overlapping a write can briefly repopulate stale data. This lesson demonstrates basic cache-aside, not distributed consistency.
+Cu caching dezactivat, golirea completată nu are efect. Redis activat dar inaccesibil produce 503. TTL limitează datele învechite, dar nu oferă consistență distribuită strictă: citirile concurente cu scrierile pot reintroduce temporar o valoare veche.
 
-## Homework review
+## Tema
 
-Check that the student used their own feature branch and PR, reviewed the full diff, and documented success and error responses. Confirm their screenshots show keys and TTL, not only frontend timing. The reference answer is on `solution`; `main` retains numbered exercises. Add future lessons using the existing `lesson-complete` test tag and shared check command.
+Verifică ramura de lucru, PR-ul și recitirea întregului diff. Cere dovezi ale cheilor, TTL-ului și golirii, nu numai măsurarea timpului în frontend. Răspunsurile sunt pe solution; main păstrează TODO-urile. Lecțiile viitoare folosesc aceeași etichetă `lesson-complete` și aceeași comandă de verificare.

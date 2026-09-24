@@ -1,14 +1,14 @@
-# PostgreSQL: prepare once
+# PostgreSQL și Redis: pregătire locală
 
-**Use native PostgreSQL if Docker runs out of memory.** Choose one option below.
+**Docker este opțional.** Pe calculatoare cu puțină memorie folosește PostgreSQL și Redis/Memurai instalate nativ.
 
-## Native PostgreSQL
+## PostgreSQL nativ
 
-Already installed? Keep your existing password and skip installation.
+Dacă este deja instalat, păstrează parola existentă și sari peste instalare.
 
-- **Windows:** use the [PostgreSQL installer](https://www.postgresql.org/download/windows/). Include the server, pgAdmin and command-line tools. Remember the `postgres` password; keep port **5432**.
-- **macOS:** use the [PostgreSQL installer](https://www.postgresql.org/download/macosx/) with the same settings.
-- **Debian:** run these commands:
+- **Windows:** [installer PostgreSQL](https://www.postgresql.org/download/windows/). Include serverul, pgAdmin și instrumentele de linie de comandă. Reține parola utilizatorului `postgres`; păstrează portul **5432**.
+- **macOS:** [installer PostgreSQL](https://www.postgresql.org/download/macosx/), cu aceleași opțiuni.
+- **Debian:** execută:
 
 ```sh
 sudo apt update
@@ -17,47 +17,49 @@ sudo systemctl start postgresql
 sudo -u postgres psql
 ```
 
-In the Debian `psql` prompt, type `\password postgres`, choose a password, then `\q`.
-See the [official Debian instructions](https://www.postgresql.org/download/linux/debian/).
+În consola psql de pe Debian: `\password postgres`, alege parola, apoi `\q`. [Instrucțiuni oficiale](https://www.postgresql.org/download/linux/debian/).
 
-### Create the database
+### Creează baza
 
-From the **project folder**, run this command and enter your PostgreSQL password:
+Din folderul proiectului:
 
 ```sh
 psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f database/create_database.sql
 ```
 
-Windows says `psql` is missing? In PowerShell, first add your installed version's bin folder (example for version 16):
+Dacă PowerShell nu găsește psql, adaugă folderul versiunii instalate; exemplu pentru 18:
 
 ```powershell
-$env:Path += ';C:\Program Files\PostgreSQL\16\bin'
+$env:Path += ';C:\Program Files\PostgreSQL\18\bin'
 ```
 
-On macOS with the EDB version 16 installer: `export PATH="/Library/PostgreSQL/16/bin:$PATH"`.
+Pe Mac, pentru installerul EDB 18: `export PATH="/Library/PostgreSQL/18/bin:$PATH"`. Înlocuiește 18 cu versiunea ta.
 
-Copy `database/application-local.properties.example` into the project root as **application-local.properties**. Set your database username and password there. This file is ignored by Git.
+Alternativ, în pgAdmin creează baza **e-commerce**. Nu lipi `create_database.sql` în Query Tool: conține comenzi specifice psql.
 
-**pgAdmin alternative:** create a database named `e-commerce`. The backend creates its tables and sample data on startup; no manual table scripts are needed. Do not paste the psql-only `create_database.sql` into Query Tool.
+Copiază `database/application-local.properties.example` în rădăcina proiectului cu numele exact **application-local.properties**. Completează utilizatorul și parola PostgreSQL. Fișierul este ignorat de Git. Un fișier numit `application-local.settings` nu este încărcat de aplicație.
 
-## Optional: Docker
+Backend-ul execută automat `create_tables.sql` și `insert_data.sql` înainte de verificarea JPA. Tabelele lipsă sunt create; înregistrările existente nu sunt resetate. Modificarea coloanelor existente necesită actualizarea explicită a schemei pentru lecția respectivă.
 
-If Docker is already installed and running:
+## PostgreSQL prin Docker, opțional
+
+Cu Docker instalat și pornit:
 
 - Windows: `.\setup.cmd db`
 - Mac/Linux: `bash setup.sh db`
 
-This starts PostgreSQL on **localhost:5432** and loads the tables/sample data on first use. The app's defaults already match it. No local properties file is needed.
+Se pornește PostgreSQL pe **localhost:5432**. Setările implicite ale aplicației corespund containerului; nu ai nevoie de fișier local dacă nu ai schimbat parola.
 
-If port 5432 is occupied, use native PostgreSQL above. If Docker reports insufficient memory, use native PostgreSQL too.
-To stop: `docker compose -f database/compose.yaml stop`. Data is kept. Docker initializes a new database; the backend also runs the repeatable SQL on every startup, including with an existing Docker volume.
+Dacă portul este ocupat, folosește PostgreSQL deja instalat. Dacă memoria nu ajunge, folosește instalarea nativă.
+Oprire: `docker compose -f database/compose.yaml stop`. Datele sunt păstrate. Nu șterge baza sau volumul pentru a rezolva o eroare.
 
-## Start and check
+## Verifică PostgreSQL
 
-Start the backend: `.\setup.cmd run` or `bash setup.sh run`.
-Open **http://localhost:8080/api/products** — expect six sample products on a fresh database.
+Pornește backend-ul cu `.\setup.cmd run` sau `bash setup.sh run`.
+Deschide **http://localhost:8080/api/products**: într-o bază nouă sunt șase produse.
 
-To inspect the native database: `psql -h localhost -U postgres -d e-commerce`. For Docker: `docker compose -f database/compose.yaml exec postgres psql -U postgres -d e-commerce`.
+Conectare nativă: `psql -h localhost -U postgres -d e-commerce`.
+Prin Docker: `docker compose -f database/compose.yaml exec postgres psql -U postgres -d e-commerce`.
 
 ```sql
 \dt
@@ -65,22 +67,56 @@ SELECT name, price, stock FROM products;
 SELECT email, role, password_hash FROM users;
 ```
 
-**Connection refused:** start PostgreSQL. **Password failed:** fix `application-local.properties`. **Missing table:** restart the updated backend; it now creates missing tables before validation. **Schema mismatch:** existing columns are not automatically changed; apply the teacher's schema changes for that lesson.
+**Connection refused:** pornește PostgreSQL. **Password failed:** corectează fișierul local. **Schema mismatch:** verifică baza selectată și actualizările de schemă. Conturile și parolele demonstrative sunt numai pentru practica locală.
 
-The sample accounts and Docker password are for local classroom practice only. Re-running the SQL keeps existing records. Do not delete an existing database to fix an error.
+<a id="redis-pentru-lectia-3"></a>
+## Redis pentru lecția 3
 
-## Lesson 3: Redis (optional for earlier lessons)
+### Instalare nativă, fără Docker
 
-Choose one installation:
+| Sistem | Comandă în folderul proiectului |
+| --- | --- |
+| Windows | `.\setup.cmd redis` |
+| macOS / Debian | `bash setup.sh redis` |
 
-- **Windows:** install [Memurai](https://docs.memurai.com/) as a local service on port **6379**. Use `memurai-cli` for the commands below. If it is not on PATH, run `& 'C:\Program Files\Memurai\memurai-cli.exe' ping` in PowerShell.
-- **Mac:** `brew install redis`, then `brew services start redis`. [Homebrew instructions](https://redis.io/docs/latest/operate/oss_and_stack/install/install-stack/homebrew/).
-- **Debian:** `sudo apt update`, `sudo apt install redis-server redis-tools`, then `sudo systemctl start redis-server`.
-- **Optional Docker:** `docker compose -f database/compose.yaml --profile lesson3 up -d --wait redis`. This starts only Redis; you can keep native PostgreSQL.
+Setup-ul obișnuit pregătește și Redis dacă nu există deja un server activ.
+Pe Windows instalează Memurai Developer și cere aprobarea Windows pentru administrator. Pe Mac instalează Redis prin Homebrew și pornește serviciul utilizatorului. Pe Debian folosește pachetele `redis-server` și `redis-tools`.
 
-Check: `redis-cli ping` should return **PONG**. Keep Redis local; no firewall opening is needed for this lesson.
+Verificare pe Windows:
 
-Add this to your ignored **application-local.properties** (keep your PostgreSQL settings):
+```powershell
+& "C:\Program Files\Memurai\memurai-cli.exe" ping
+```
+
+Pe Mac/Linux: `redis-cli ping`. Rezultatul trebuie să fie **PONG**.
+
+Un mesaj „comanda nu este recunoscută” indică lipsa instrumentului sau a căii PATH, nu demonstrează singur că serverul este oprit. Redeschide terminalul după instalare sau folosește calea completă.
+
+Setup nu oprește serverele existente și nu le schimbă parolele/porturile. Pentru a înlocui containerul Redis al lecției cu Memurai:
+
+```powershell
+docker compose -f database/compose.yaml stop redis
+.\setup.cmd redis
+```
+
+Memurai Developer este pentru dezvoltare/testare și se oprește după zece zile; rulează din nou comanda Redis pentru pornirea serviciului. [Instalare](https://docs.memurai.com/en/installation), [ediții](https://www.memurai.com/get-memurai).
+Dacă instalarea eșuează, verifică mesajul și jurnalul indicat în `%LOCALAPPDATA%\impact-backend\setup-logs`. Acceptă solicitarea de administrator.
+
+### Alternativă: numai Redis în Docker
+
+Poți păstra PostgreSQL nativ:
+
+```sh
+docker compose -f database/compose.yaml --profile lesson3 up -d --wait redis
+docker compose -f database/compose.yaml exec -T redis redis-cli ping
+```
+
+Containerul include `redis-cli`; nu trebuie instalat separat pe Windows.
+Oprire: `docker compose -f database/compose.yaml stop redis`.
+
+### Activează cache-ul
+
+În **application-local.properties**, păstrează datele PostgreSQL și adaugă:
 
 ```properties
 spring.cache.type=redis
@@ -88,15 +124,27 @@ spring.data.redis.host=localhost
 spring.data.redis.port=6379
 ```
 
-Restart the backend. Set `spring.cache.type=none` to return to earlier lessons without Redis. Swagger works in either mode.
+Repornește backend-ul. Pentru lecțiile anterioare poți folosi `spring.cache.type=none`. Swagger funcționează în ambele moduri.
 
-After completing the Lesson 3 TODOs and reading `/api/products`:
+### Inspectează cheile
+
+După completarea TODO-urilor și o cerere la `/api/products`:
 
 ```sh
-redis-cli --scan --pattern 'products::*'
+redis-cli --scan --pattern "products::*"
 redis-cli TTL products::all
 ```
 
-For Docker, prefix Redis commands with `docker compose -f database/compose.yaml exec redis`, for example `docker compose -f database/compose.yaml exec redis redis-cli TTL products::all`.
+Pe Windows folosește `memurai-cli` sau calea completă a acestuia. Prin Docker:
 
-TTL should be between 1 and 60; `-2` means absent, `-1` means no expiry. Call `/api/products` again after expiration. Clear with `POST /api/cache/clear`; don't run FLUSHALL. A 503 means Redis is enabled but unreachable; check the service, port and any Redis password. A 501 means the cache-clear TODO is unfinished.
+```sh
+docker compose -f database/compose.yaml exec -T redis redis-cli --scan --pattern "products::*"
+docker compose -f database/compose.yaml exec -T redis redis-cli TTL products::all
+```
+
+TTL trebuie să fie între 1 și 60. `-2` înseamnă cheie absentă; `-1` înseamnă fără expirare.
+`POST /api/cache/clear` golește cache-urile catalogului. Nu folosi FLUSHALL.
+Frontend-ul recitește imediat produsele și poate recrea cheile.
+
+**503:** Redis este activat, dar nu răspunde; verifică serviciul, portul și parola.
+**501:** TODO-ul de golire nu este completat.

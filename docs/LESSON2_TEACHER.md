@@ -1,26 +1,22 @@
-# Lesson 2: quick catch-up
+# Lecția 2: recuperare rapidă și răspunsuri
 
-Prepare PostgreSQL before class using [database instructions](../database/README.md). Native installation is the main option for low-memory laptops; Docker is optional. Java stays at **21**.
+Pregătește [PostgreSQL](../database/README.md) înainte de oră. Instalarea nativă este potrivită calculatoarelor cu puțină memorie. Java rămâne **21**.
 
-Suggested 35-minute lesson:
-
-| Minutes | Together |
+| Minute | Activitate |
 | --- | --- |
-| 0–5 | Run the SQL, inspect three tables and GET /api/products. |
-| 5–10 | Trace entity → repository → service → DTO → controller. Complete L2-1 and L2-2. |
-| 10–17 | Complete BCrypt L2-3 and L2-4; explain salts and why passwords never go in responses. |
-| 17–25 | Complete token L2-5 and context L2-6; explain signature, expiry and roles. |
-| 25–35 | Run completion checks, register/login in Postman, test 401/403/200, then use the frontend. |
+| 0–5 | Porniți aplicația, inspectați cele trei tabele și GET /api/products. |
+| 5–10 | Urmăriți entity → repository → service → DTO → controller. L2-1 și L2-2. |
+| 10–17 | Completați BCrypt L2-3/L2-4; explicați salt și protejarea parolelor. |
+| 17–25 | Completați JWT L2-5 și contextul L2-6; explicați semnătura, expirarea și rolurile. |
+| 25–35 | Verificați în Postman 401/403/200, apoi frontend-ul. |
 
-Entities, repositories, SQL, validation, controllers, authorization and error responses are prepared. Students change six small sections. Unfinished authentication stays blocked. Register returns a token to match the existing frontend; students cannot request ADMIN during registration. Tokens expire after one hour; the default signing key changes on restart, so log in again.
+Entitățile, SQL-ul, validarea, controllerele și regulile de acces sunt pregătite. Elevii modifică șase secțiuni. Înainte de completare, autentificarea rămâne blocată. Înregistrarea întoarce token pentru compatibilitatea frontend-ului și acordă doar USER. Cheia implicită se schimbă la repornire; autentificați-vă din nou.
 
-Normal `mvn test` checks the prepared starter; `mvn -Plesson-check test` also checks the student answers. Tests use H2, not the classroom database. Native PostgreSQL smoke checks still matter. The frontend is fetched by the run launcher and is never edited or pushed by these changes.
+## Răspunsuri
 
-## Answer key
+Înlocuiește codul provizoriu; nu lăsa un `throw` înainte de `return`.
 
-Replace the indicated placeholder; do not leave a throw before your return.
-
-**L2-1 — ProductService.selectProducts:**
+**L2-1 — ProductService.selectProducts**, după cazul cu `categoryId == null`:
 
 ```java
 return products.findByCategoryId(categoryId);
@@ -44,7 +40,7 @@ return passwordEncoder.encode(rawPassword);
 return passwordEncoder.matches(rawPassword, storedHash);
 ```
 
-**L2-5 — JwtService.generateToken:**
+**L2-5 — JwtService.generateToken**, păstrând variabilele `now` și `expiration`:
 
 ```java
 return Jwts.builder()
@@ -57,17 +53,16 @@ return Jwts.builder()
         .compact();
 ```
 
-**L2-6 — JwtFilter.authenticate:**
+**L2-6 — JwtFilter.authenticate**, după crearea autentificării:
 
 ```java
 SecurityContextHolder.getContext().setAuthentication(authentication);
 ```
 
-After all six, the completion checks must pass. Use the seeded USER and ADMIN accounts from the student checklist to demonstrate role boundaries. Lesson 1 TODOs are retained for students still catching up.
+## Verificare și lecții viitoare
 
-## Adding future lessons
+`mvn test` verifică infrastructura pregătită pe main. `mvn -Plesson-check test` include toate răspunsurile elevilor, inclusiv lecția 3. Testele folosesc H2, nu PostgreSQL-ul elevilor. Verificați separat aplicația reală. Pe solution, toate testele rulează implicit.
 
-Keep the same setup/run/check commands. Add the next checklist and link it from README.
-Mark student completion tests with `@Tag("lesson-complete")`; normal starter builds skip these, and `mvn -Plesson-check test` runs them all.
-Keep exercise-specific labels such as L2-1 or L3-1 in the source. Main holds exercises; solution holds answers.
-The shared SQL runs before JPA validation on each startup. New SQL must be safe to rerun and preserve existing student data. Existing table changes need explicit schema updates; CREATE TABLE IF NOT EXISTS does not upgrade columns.
+Pentru lecția următoare adaugă lista de verificare în README. Marchează testele de completare cu `@Tag("lesson-complete")` și păstrează comenzile setup/run/check. Folosește etichete L3-1, L4-1 etc. Main păstrează exercițiile; solution, răspunsurile.
+
+SQL-ul se execută înaintea validării JPA la fiecare pornire. Orice SQL nou trebuie să poată fi rulat repetat și să păstreze datele. `CREATE TABLE IF NOT EXISTS` nu modifică automat coloanele existente.

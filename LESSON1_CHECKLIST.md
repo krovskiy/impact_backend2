@@ -1,25 +1,17 @@
-# Lesson 1 catch-up checklist
+# Lecția 1: lista de verificare
 
-The project is intentionally **almost finished**. Complete these items yourself:
+Proiectul este pregătit aproape complet. Codul Java este în `src/main/java/com/impact/ecommerce/`.
 
-- [ ] In `config/CorsConfig.java`, allow browser requests using `allowedOriginPatterns("*")`.
-- [ ] In `config/CorsConfig.java`, allow all lesson HTTP methods: GET, POST, PUT, PATCH, DELETE.
-- [ ] In `controllers/PracticeController.java`, replace the TODO responses with the exact required strings.
-- [ ] Run the backend and verify `GET /api/practice`.
-- [ ] Test POST / PUT / PATCH / DELETE with a JSON body in Postman.
-- [ ] Run the launcher to fetch the lesson frontend, open http://localhost:8080/, and point its API console to `http://localhost:8080/api/practice`.
-- [ ] Make sure all 5 frontend cards become green (5 / 5).
-- [ ] Create your repository with **Use this template**, clone it, and commit/push your work using your IDE.
+- [ ] În `config/CorsConfig.java`, permite originile browserului cu `allowedOriginPatterns("*")`.
+- [ ] Permite metodele GET, POST, PUT, PATCH, DELETE și OPTIONS.
+- [ ] În `controllers/PracticeController.java`, înlocuiește răspunsurile TODO cu textele de mai jos.
+- [ ] Repornește backend-ul și testează toate cele cinci metode la `/api/practice` în Postman.
+- [ ] Pentru scrieri, trimite JSON brut cu `Content-Type: application/json`.
+- [ ] Deschide http://localhost:8080/ și folosește consola lecției 1. Adresa API este `http://localhost:8080/api/practice`.
+- [ ] Verifică și browserul: Postman singur nu demonstrează că regulile CORS funcționează.
+- [ ] Salvează modificările într-o ramură din repository-ul tău și deschide un PR.
 
-## Exact required responses
-
-Given request body:
-
-```json
-{"name":"demo"}
-```
-
-Expected text:
+Pentru corpul `{"name":"demo"}`, răspunsurile exacte sunt:
 
 ```text
 GET    -> api initialised
@@ -28,3 +20,5 @@ PUT    -> your update is : {"name":"demo"}
 PATCH  -> you have updated the : {"name":"demo"}
 DELETE -> youve deleted : {"name":"demo"}
 ```
+
+Nu traduce aceste texte: testele și frontend-ul le verifică exact.
