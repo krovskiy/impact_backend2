@@ -20,3 +20,4 @@ pom.xml.before-setup-fix.bak
 /frontend/
 
 /application-local.properties
+/docs
