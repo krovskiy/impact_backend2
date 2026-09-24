@@ -6,6 +6,8 @@ trap 'printf "\nSetup failed at line %s. Fix the error above, then rerun: bash s
 [[ "$(uname -s)" == Linux && -f /etc/debian_version ]] || fail 'This script is for Debian-based Linux. Use setup.sh on macOS.'
 case "${1:-}" in
     '') setup_main linux ;;
+    db) database_main ;;
+    check) check_lesson2 ;;
     run) start_main "${2:-8080}" ;;
-    *) fail 'Use bash setup.sh to install, or bash setup.sh run to start.' ;;
+    *) fail 'Use bash setup.sh [db|run|check].' ;;
 esac

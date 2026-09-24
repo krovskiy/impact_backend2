@@ -11,6 +11,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+@org.springframework.test.context.ActiveProfiles("test")
 @SpringBootTest
 @AutoConfigureMockMvc
 class Lesson1BackendApplicationTests {
@@ -35,7 +36,7 @@ class Lesson1BackendApplicationTests {
     @Test
     void frontendRepositoryFilesAreNotPublic() throws Exception {
         for (String path : new String[]{"/.git/config", "/package.json", "/src/app/App.jsx", "/README.md"}) {
-            mvc.perform(get(path)).andExpect(status().isNotFound());
+            mvc.perform(get(path)).andExpect(status().isUnauthorized());
         }
     }
 }

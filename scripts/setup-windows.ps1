@@ -1,5 +1,5 @@
 #Requires -Version 5.1
-param([switch]$Run, [ValidateRange(1, 65535)][int]$Port = 8080)
+param([switch]$Database, [switch]$CheckLesson2, [switch]$Run, [ValidateRange(1, 65535)][int]$Port = 8080)
 $ErrorActionPreference = 'Stop'
 
 Set-StrictMode -Version Latest
@@ -275,6 +275,36 @@ function Install-WindowsCommand {
 # Dot-sourcing exposes helpers for offline tests without running setup.
 if ($MyInvocation.InvocationName -eq '.') { return }
 
+Set-Location -LiteralPath (Split-Path -Parent $PSScriptRoot)
+
+if ($Database) {
+    try {
+        if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+            throw 'Install/open Docker Desktop, or follow database/README.md for native PostgreSQL.'
+        }
+        Invoke-Checked docker @('compose', '-f', (Join-Path (Split-Path -Parent $PSScriptRoot) 'database\compose.yaml'), 'up', '-d', '--wait')
+        Write-Host 'PostgreSQL is ready. Next: .\setup.cmd run'
+        exit 0
+    } catch {
+        Write-Host $_.Exception.Message -ForegroundColor Red
+        Write-Host 'If port 5432 is occupied, use your existing PostgreSQL: database/README.md.'
+        exit 1
+    }
+}
+
+if ($CheckLesson2) {
+    try {
+        Enable-Toolchain
+        Write-Host 'Checking Lesson 2. Failures are expected until all six TODOs are complete.'
+        Invoke-Checked "$env:MAVEN_HOME\bin\mvn.cmd" @('-f', (Join-Path (Split-Path -Parent $PSScriptRoot) 'pom.xml'), '--batch-mode', '--no-transfer-progress', '-Plesson2-check', 'test')
+        exit 0
+    } catch {
+        Write-Host $_.Exception.Message -ForegroundColor Red
+        exit 1
+    }
+}
+
+
 if ($Run) {
     try {
         Enable-Toolchain
@@ -282,7 +312,7 @@ if ($Run) {
         Sync-Frontend $project
         Invoke-Checked "$env:JAVA_HOME\bin\java.exe" @("$PSScriptRoot\CheckPom.java", "$project\pom.xml")
         Write-Host "Once Spring reports Started, open http://localhost:$Port/"
-        Write-Host 'Keep this window open. Press Ctrl+C to stop.'
+        Write-Host 'Keep this window open. Press Ctrl+C to stop. PostgreSQL must be running (setup.cmd db, or native PostgreSQL).'
         Invoke-Checked "$env:MAVEN_HOME\bin\mvn.cmd" @('-f', "$project\pom.xml", 'spring-boot:run', "-Dspring-boot.run.arguments=--server.port=$Port")
         exit 0
     } catch {
@@ -314,7 +344,7 @@ try {
     $owner = ($url.Substring('https://github.com/'.Length) -split '/')[0]
     Publish-Project $url $owner "$owner@users.noreply.github.com"
     Write-Host "SUCCESS: uploaded to $url on main." -ForegroundColor Green
-    Write-Host 'Next: run .\setup.cmd run, then open http://localhost:8080/'
+    Write-Host 'Next: prepare PostgreSQL (.\setup.cmd db or database/README.md), run .\setup.cmd run, then open http://localhost:8080/'
 } catch {
     Write-Host "SETUP STOPPED: $($_.Exception.Message)" -ForegroundColor Red
     Write-Host 'Fix the message above and rerun setup.cmd. Setup never force-pushes.'

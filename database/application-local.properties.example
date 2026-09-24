@@ -1,0 +1,6 @@
+# Copy to application-local.properties in the project root (ignored by Git).
+spring.datasource.url=jdbc:postgresql://localhost:5432/e-commerce
+spring.datasource.username=postgres
+spring.datasource.password=YOUR_POSTGRES_PASSWORD
+# Optional: a private random secret of at least 32 bytes; blank generates a new key on restart.
+# jwt.secret=

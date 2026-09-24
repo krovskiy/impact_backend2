@@ -1,0 +1,21 @@
+name: impact-lesson2
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: e-commerce
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-impact-local-only}
+    ports:
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
+    volumes:
+      - lesson2-data:/var/lib/postgresql/data
+      - ./create_tables.sql:/docker-entrypoint-initdb.d/01-tables.sql:ro
+      - ./insert_data.sql:/docker-entrypoint-initdb.d/02-data.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d e-commerce"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+volumes:
+  lesson2-data:

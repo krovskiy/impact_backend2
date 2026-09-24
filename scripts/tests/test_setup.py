@@ -318,7 +318,11 @@ class PomTests(unittest.TestCase):
         self.java = str(Path(java_home) / "bin" / ("java.exe" if os.name == "nt" else "java")) if java_home else shutil.which("java")
         if not self.java:
             self.skipTest("Java JDK is required for POM checks")
+        # Reproduce the Lesson 1 POM before the missing Lesson 2 dependencies were appended.
         self.original = (PROJECT / "pom.xml").read_bytes()
+        start = self.original.index(b'        <!-- Lesson 2:')
+        end = self.original.index(b'    </dependencies>', start)
+        self.original = self.original[:start] + self.original[end:]
         self.dependency = (
             '<!-- JPA / Hibernate -->\n<dependency>'
             '<groupId>org.springframework.boot</groupId>'

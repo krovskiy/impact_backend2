@@ -265,8 +265,23 @@ setup_main() {
     owner=${TARGET_URL#https://github.com/}
     owner=${owner%%/*}
     publish_project "$TARGET_URL" "$owner" "$owner@users.noreply.github.com"
-    printf '\nSUCCESS: uploaded to %s on main.\nNext: bash setup.sh run\nThen open http://localhost:8080/\n' "$TARGET_URL"
+    printf '\nSUCCESS: uploaded to %s on main.\nNext: prepare PostgreSQL (bash setup.sh db or database/README.md), then bash setup.sh run\nThen open http://localhost:8080/\n' "$TARGET_URL"
 }
+
+database_main() {
+    command -v docker >/dev/null 2>&1 || fail 'Install/open Docker Desktop (or Docker Engine + Compose on Debian), or follow database/README.md for native PostgreSQL.'
+    docker compose -f "$PWD/database/compose.yaml" up -d --wait
+    printf 'PostgreSQL is ready. Next: bash setup.sh run\n'
+}
+
+check_lesson2() {
+    local environment="$HOME/.local/share/impact-backend/toolchains/env.sh"
+    [[ -f "$environment" ]] || fail 'Run bash setup.sh first.'
+    source "$environment"
+    printf 'Checking Lesson 2. Failures are expected until all six TODOs are complete.\n'
+    exec "$MAVEN_HOME/bin/mvn" -f "$PWD/pom.xml" --batch-mode --no-transfer-progress -Plesson2-check test
+}
+
 
 start_main() {
     local port=${1:-8080} environment
