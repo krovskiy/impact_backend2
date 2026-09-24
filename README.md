@@ -1,120 +1,59 @@
-# Lesson 1 Backend Catch-up Starter
+# Lesson 1 Backend
 
-https://github.com/Victoras23/impact_2_year_fe
+## First setup
 
-`powershell -ExecutionPolicy Bypass -File .\install-java17-java21-maven.ps1`
+1. Clone this project (or download and extract the ZIP).
+2. Create **your own empty repository** at [github.com/new](https://github.com/new). Do not add a README, license, or .gitignore.
+3. Run the launcher in the project folder:
 
-## What you need to install
+| Computer | Setup |
+| --- | --- |
+| Windows | Double-click **setup.cmd** |
+| macOS / Debian Linux | Open Terminal in the project folder and run **`bash setup.sh`** |
 
-### 1) Java
-Install **JDK 17**.
+4. Paste your repository link, for example `https://github.com/your-name/your-project`.
 
-The lesson material uses Java 17, and this project is compiled for Java 17. Spring Boot 3 requires Java 17 or newer, so there is no honest way to make the same Spring Boot 3 project run on literally every historical Java version. The safest classroom setup is: **everyone uses JDK 17**.
+The script installs **Java 21, Maven and Git**, checks your link and push access, builds/tests the project, **removes the teacher's origin and replaces it with yours**, then commits and pushes to **main**. Future pushes go to your repository.
 
-Check:
+There is **no GitHub CLI or scripted sign-in**. Git uses your usual credentials; its credential manager may ask for authentication if you have not used Git on this computer. A repository link alone does not grant push access.
 
-```bash
-java -version
-javac -version
-```
+Allow a few minutes and follow any system installation/password prompts. macOS installs Homebrew if needed; Debian asks for sudo access. Run as your normal user. Windows needs Microsoft's App Installer (WinGet); setup explains what to do if it is missing.
 
-Both should show version 17.x (or a newer JDK capable of running Java 17 bytecode).
-
-Recommended distributions: Eclipse Temurin 17 or Microsoft/OpenJDK 17.
-
-### 2) Git
-Install Git and verify:
-
-```bash
-git --version
-```
-
-### 3) Postman
-Install Postman Desktop. Use it to test GET, POST, PUT, PATCH and DELETE requests before connecting the frontend.
-
-### 4) IDE
-Any Java IDE is fine. IntelliJ IDEA Community is the easiest classroom choice. VS Code also works with the Java Extension Pack.
-
-### 5) Maven
-You do **not** need to install Maven separately if your IDE has Maven support, but command-line Maven is useful.
-
-Check:
-
-```bash
-mvn -version
-```
-
-The output should show Java 17 as the JVM Maven is using.
-
-## Run the project
+## Start the backend
 
 From the project folder:
 
-```bash
-mvn spring-boot:run
-```
+| Computer | Start |
+| --- | --- |
+| Windows | `.\setup.cmd run` |
+| macOS / Debian | `bash setup.sh run` |
 
-Then open/test:
+Wait for `Started`, then open **http://localhost:8080/api/practice**.
+The response should be `api initialised`. Keep the terminal open; press **Ctrl+C** to stop.
 
-```text
-http://localhost:8080/api/practice
-```
+If port 8080 is busy, use `.\setup.cmd run 8081` or `bash setup.sh run 8081`.
 
-The GET endpoint already works and returns:
+## If setup stops
 
-```text
-api initialised
-```
+- **Bad link:** paste the repository page URL, without `/tree/main` or `/blob/...`. HTTPS and GitHub SSH links are accepted.
+- **Cannot access/push:** check the spelling, repository ownership, and your normal Git credentials.
+- **Remote already has different commits:** use an empty repository for first setup. Setup never force-pushes or overwrites remote history.
+- **Download/build failure:** fix the error shown and rerun the same launcher. Failed builds are not published.
+- **Windows blocks scripts:** use `setup.cmd`. Organization policy may require administrator help.
+- **Incomplete toolchain folder:** rename the exact folder shown by the error, then rerun setup.
 
-## Postman examples
+You can rerun setup after editing to test, commit and push again. It skips empty commits and reuses installed Java/Maven. Existing Git identity is retained; if missing, this project's identity uses the repository owner and their GitHub noreply email.
 
-Base URL:
+Setup publishes all non-ignored changes and existing Git history. Use your intended repository. Existing Java installations and other local branches are retained.
 
-```text
-http://localhost:8080/api/practice
-```
+## Lesson exercises
 
-For POST / PUT / PATCH / DELETE, choose `Body -> raw -> JSON` and send for example:
+Follow [LESSON1_CHECKLIST.md](LESSON1_CHECKLIST.md) to finish CORS and the POST/PUT/PATCH/DELETE responses. Test with a JSON body such as `{"name":"demo"}`, using Postman or the [lesson frontend](https://github.com/Victoras23/impact_2_year_fe).
 
-```json
-{"name":"demo"}
-```
+## Script maintenance
 
-## Suggested Git workflow
+Only the two launchers live in the root. Platform scripts and offline tests are in `scripts/`. Java/Maven are installed outside the project, under `%LOCALAPPDATA%\impact-backend\toolchains` on Windows or `~/.local/share/impact-backend/toolchains` on macOS/Linux. The launchers select them automatically.
 
-```bash
-git clone <YOUR_REPOSITORY_URL>
-cd lesson1-backend
+Run `python scripts/tests/test_setup.py` for offline URL/Git tests. They use temporary local repositories and never push to GitHub. Windows tests require PowerShell; Unix tests require Bash (Git for Windows includes it).
 
-git checkout -b lesson-1
-# finish the TODOs
-
-git add .
-git commit -m "feat: complete lesson 1 practice endpoints"
-git push -u origin lesson-1
-```
-
-Useful commit message examples:
-
-```text
-chore: initialise Spring Boot lesson 1 project
-feat: add layered package structure
-feat: scaffold practice REST controller
-feat: configure CORS for lesson frontend
-feat: complete lesson 1 HTTP verb responses
-docs: add lesson 1 setup and catch-up guide
-```
-
-## Troubleshooting
-
-If `mvn spring-boot:run` says the Java version is wrong, run `java -version` and `mvn -version`. They should both point to JDK 17 (or newer).
-
-If port 8080 is busy, either stop the other app or temporarily change `server.port` in `src/main/resources/application.properties`. Remember to update the frontend/Postman URL too.
-
-If the browser frontend fails but Postman works, check `CorsConfig.java` first.
-
-If GET works but the other 4 checks fail, finish the TODO strings in `PracticeController.java` exactly as written in `LESSON1_CHECKLIST.md`.
-
-## Romanian quick note
-
-Proiectul pornește deja. Caută `TODO Lesson 1`, completează CORS și răspunsurile pentru POST/PUT/PATCH/DELETE, testează în Postman, apoi verifică frontend-ul până ai 5/5.
+Installation references: [Adoptium API](https://github.com/adoptium/api.adoptium.net/blob/main/docs/cookbook.adoc), [Maven](https://maven.apache.org/download.cgi), [Homebrew](https://brew.sh/), [WinGet](https://learn.microsoft.com/en-us/windows/package-manager/winget/install).

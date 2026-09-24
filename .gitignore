@@ -3,3 +3,14 @@ target/
 *.iml
 .vscode/
 .DS_Store
+Thumbs.db
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.log
+__pycache__/
