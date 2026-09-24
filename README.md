@@ -1,5 +1,7 @@
 # Impact Backend Year 2 - Survival Repo
 
+[Fast catch-up: understand the project and complete Lessons 1-3](docs/LESSONS1_3_CATCHUP.md)
+
 ## 1. Get your copy
 
 On GitHub, click **Use this template > Create a new repository**. Clone **your new repository** and open its folder in IntelliJ.
