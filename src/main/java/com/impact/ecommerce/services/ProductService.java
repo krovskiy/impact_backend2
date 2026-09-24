@@ -2,7 +2,6 @@ package com.impact.ecommerce.services;
 
 import com.impact.ecommerce.dtos.product.*;
 import com.impact.ecommerce.entities.*;
-import com.impact.ecommerce.exceptions.LessonTodo;
 import com.impact.ecommerce.repositories.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -27,15 +26,15 @@ public class ProductService {
 
     private List<Product> selectProducts(Long categoryId) {
         if (categoryId == null) return products.findAll(); // Working example.
-        // TODO Lesson 2 L2-1: return products filtered by categoryId.
+        // Answer Lesson 2 L2-1: return products filtered by categoryId.
         // Hint: ProductRepository already has the required derived query.
-        throw LessonTodo.required("L2-1");
+        return products.findByCategoryId(categoryId);
     }
 
     public ProductResponse toResponse(Product product) {
         Category category = product.getCategory();
-        // TODO Lesson 2 L2-2: return the category name, or null if there is no category.
-        String categoryName = null;
+        // Answer Lesson 2 L2-2: return the category name, or null if there is no category.
+        String categoryName = category == null ? null : category.getName();
         return new ProductResponse(product.getId(), product.getName(), product.getDescription(),
                 product.getPrice(), product.getStock(), category == null ? null : category.getId(), categoryName);
     }

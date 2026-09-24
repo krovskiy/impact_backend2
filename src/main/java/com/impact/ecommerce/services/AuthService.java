@@ -2,7 +2,6 @@ package com.impact.ecommerce.services;
 
 import com.impact.ecommerce.dtos.auth.*;
 import com.impact.ecommerce.entities.*;
-import com.impact.ecommerce.exceptions.LessonTodo;
 import com.impact.ecommerce.repositories.UserRepository;
 import com.impact.ecommerce.security.JwtService;
 import org.springframework.http.HttpStatus;
@@ -49,15 +48,15 @@ public class AuthService {
     }
 
     private String hashPassword(String rawPassword) {
-        // TODO Lesson 2 L2-3: return the BCrypt hash using passwordEncoder.
+        // Answer Lesson 2 L2-3: return the BCrypt hash using passwordEncoder.
         // Never return rawPassword.
-        throw LessonTodo.required("L2-3");
+        return passwordEncoder.encode(rawPassword);
     }
 
     private boolean passwordMatches(String rawPassword, String storedHash) {
-        // TODO Lesson 2 L2-4: compare rawPassword with storedHash using passwordEncoder.
+        // Answer Lesson 2 L2-4: compare rawPassword with storedHash using passwordEncoder.
         // Do not hash again and compare strings: BCrypt uses a random salt.
-        return false;
+        return passwordEncoder.matches(rawPassword, storedHash);
     }
 
     private AuthResponse response(User user) {

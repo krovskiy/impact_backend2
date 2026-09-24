@@ -1,7 +1,6 @@
 package com.impact.ecommerce.security;
 
 import com.impact.ecommerce.entities.User;
-import com.impact.ecommerce.exceptions.LessonTodo;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -28,11 +27,18 @@ public class JwtService {
     public String generateToken(User user) {
         Date now = new Date();
         Date expiration = new Date(now.getTime() + expirationMs);
-        // TODO Lesson 2 L2-5: build and sign a JWT with email as subject,
+        // Answer Lesson 2 L2-5: build and sign a JWT with email as subject,
         // id + role claims, issuedAt(now), expiration(expiration), and signingKey.
         // Use Jwts.builder() ... signWith(signingKey, Jwts.SIG.HS256).compact().
         // Never include passwordHash.
-        throw LessonTodo.required("L2-5");
+        return Jwts.builder()
+                .subject(user.getEmail())
+                .claim("id", user.getId())
+                .claim("role", user.getRole().name())
+                .issuedAt(now)
+                .expiration(expiration)
+                .signWith(signingKey, Jwts.SIG.HS256)
+                .compact();
     }
 
     public Claims readClaims(String token) {

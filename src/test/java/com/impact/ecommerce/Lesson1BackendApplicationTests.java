@@ -39,4 +39,29 @@ class Lesson1BackendApplicationTests {
             mvc.perform(get(path)).andExpect(status().isUnauthorized());
         }
     }
+
+    @Test
+    void completedPracticeResponsesMatchLessonText() throws Exception {
+        String body = "{\"name\":\"demo\"}";
+        String[] methods = {"POST", "PUT", "PATCH", "DELETE"};
+        String[] prefixes = {"youve posted: ", "your update is : ", "you have updated the : ", "youve deleted : "};
+        for (int i = 0; i < methods.length; i++) {
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                    .request(org.springframework.http.HttpMethod.valueOf(methods[i]), "/api/practice")
+                    .contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isOk()).andExpect(content().string(prefixes[i] + body));
+        }
+    }
+
+    @Test
+    void completedCorsAllowsEveryLessonMethod() throws Exception {
+        for (String method : new String[]{"GET", "POST", "PUT", "PATCH", "DELETE"}) {
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                    .options("/api/practice").header("Origin", "http://localhost:5500")
+                    .header("Access-Control-Request-Method", method))
+                    .andExpect(status().isOk())
+                    .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:5500"))
+                    .andExpect(header().string("Access-Control-Allow-Methods", org.hamcrest.Matchers.containsString(method)));
+        }
+    }
 }

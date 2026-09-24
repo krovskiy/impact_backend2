@@ -49,7 +49,7 @@ public class JwtFilter extends OncePerRequestFilter {
     private void authenticate(User user) {
         var authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
         var authentication = new UsernamePasswordAuthenticationToken(user.getEmail(), null, List.of(authority));
-        // TODO Lesson 2 L2-6: put authentication into SecurityContextHolder.getContext().
-        // Until completed, even a valid token stays unauthenticated (401).
+        // Answer Lesson 2 L2-6: put authentication into SecurityContextHolder.getContext().
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 }

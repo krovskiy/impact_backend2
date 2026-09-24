@@ -13,9 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Lesson 1 practice endpoint.
  *
- * GET is implemented as an example.
- * The other methods are intentionally almost finished: students only need to replace
- * the TODO responses with the exact lesson text.
+ * Completed responses for all five practice methods.
  */
 @RestController
 @RequestMapping("/api/practice")
@@ -28,25 +26,25 @@ public class PracticeController {
 
     @PostMapping
     public ResponseEntity<String> postPractice(@RequestBody String body) {
-        // TODO Lesson 1: exact response should be: youve posted: {body}
-        return ResponseEntity.ok("TODO: POST response for " + body);
+        // Answer Lesson 1: exact response should be: youve posted: {body}
+        return ResponseEntity.ok("youve posted: " + body);
     }
 
     @PutMapping
     public ResponseEntity<String> putPractice(@RequestBody String body) {
-        // TODO Lesson 1: exact response should be: your update is : {body}
-        return ResponseEntity.ok("TODO: PUT response for " + body);
+        // Answer Lesson 1: exact response should be: your update is : {body}
+        return ResponseEntity.ok("your update is : " + body);
     }
 
     @PatchMapping
     public ResponseEntity<String> patchPractice(@RequestBody String body) {
-        // TODO Lesson 1: exact response should be: you have updated the : {body}
-        return ResponseEntity.ok("TODO: PATCH response for " + body);
+        // Answer Lesson 1: exact response should be: you have updated the : {body}
+        return ResponseEntity.ok("you have updated the : " + body);
     }
 
     @DeleteMapping
     public ResponseEntity<String> deletePractice(@RequestBody String body) {
-        // TODO Lesson 1: exact response should be: youve deleted : {body}
-        return ResponseEntity.ok("TODO: DELETE response for " + body);
+        // Answer Lesson 1: exact response should be: youve deleted : {body}
+        return ResponseEntity.ok("youve deleted : " + body);
     }
 }
