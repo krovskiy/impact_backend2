@@ -10,6 +10,61 @@ function Invoke-Checked {
     if ($LASTEXITCODE -ne 0) { throw "$Command failed (exit $LASTEXITCODE). Fix the error above and run setup again." }
 }
 
+function Sync-Origin {
+    param([string]$Directory)
+    if (-not (Test-Path -LiteralPath (Join-Path $Directory '.git'))) {
+        Write-Host 'No Git history in this folder yet; skipping its origin update.'
+        return
+    }
+    if (@(& git -C $Directory remote) -notcontains 'origin') {
+        Write-Host 'No origin configured yet; skipping its update.'
+        return
+    }
+    $branch = & git -C $Directory symbolic-ref --quiet --short HEAD
+    if ($LASTEXITCODE -ne 0) { throw "Detached HEAD in $Directory. Switch to a branch before updating." }
+    foreach ($state in @('MERGE_HEAD', 'CHERRY_PICK_HEAD', 'REVERT_HEAD', 'rebase-merge', 'rebase-apply', 'BISECT_LOG')) {
+        $statePath = & git -C $Directory rev-parse --git-path $state
+        if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect repository state.' }
+        if (-not [IO.Path]::IsPathRooted($statePath)) { $statePath = Join-Path $Directory $statePath }
+        if (Test-Path -LiteralPath $statePath) { throw "Finish or abort the Git operation in $Directory before updating." }
+    }
+    Write-Host "Updating $Directory from origin/$branch..."
+    Invoke-Checked git @('-C', $Directory, 'fetch', 'origin')
+    $remoteBranch = @(& git -C $Directory ls-remote --heads origin "refs/heads/$branch")
+    if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect origin branches.' }
+    if ($remoteBranch.Count -eq 0) {
+        Write-Host "Origin has no $branch branch yet; nothing to pull."
+        return
+    }
+    # Disable automatic stashes/rebases even when enabled in global Git config.
+    Invoke-Checked git @('-C', $Directory, '-c', 'merge.autoStash=false', '-c', 'rebase.autoStash=false',
+        'pull', '--ff-only', '--no-rebase', 'origin', $branch)
+}
+
+function Sync-Frontend {
+    param([string]$ProjectRoot, [string]$RepositoryUrl = 'https://github.com/Victoras23/impact_2_year_fe.git')
+    $directory = Join-Path $ProjectRoot 'frontend'
+    if (-not (Test-Path -LiteralPath $directory)) {
+        Invoke-Checked git @('clone', '--branch', 'main', '--', $RepositoryUrl, $directory)
+    } else {
+        if (-not (Test-Path -LiteralPath (Join-Path $directory '.git'))) {
+            throw 'frontend already exists but is not a Git clone. Rename that folder and retry; your files were retained.'
+        }
+        $origin = & git -C $directory remote get-url origin
+        if ($LASTEXITCODE -ne 0 -or $origin -cne $RepositoryUrl) {
+            throw 'frontend has an unexpected origin. Move it aside or restore its expected origin before retrying.'
+        }
+        $branch = & git -C $directory symbolic-ref --quiet --short HEAD
+        if ($LASTEXITCODE -ne 0 -or $branch -ne 'main') { throw 'Switch the frontend repository to main before updating.' }
+    }
+    Sync-Origin $directory
+    $index = Join-Path $directory 'index.html'
+    if (-not (Test-Path -LiteralPath $index -PathType Leaf) -or (Get-Item -LiteralPath $index).Length -eq 0) {
+        throw 'The frontend repository has no usable index.html. Check its main branch before continuing.'
+    }
+}
+
+
 function ConvertTo-GitHubUrl {
     param([string]$Value)
     $value = $Value.Trim()
@@ -67,8 +122,10 @@ function Test-GitTarget {
         if (-not $hasRepo) { throw 'This ZIP has no Git history. Choose a new EMPTY GitHub repository (no README, license, or .gitignore).' }
         & git rev-parse --verify --quiet HEAD | Out-Null
         if ($LASTEXITCODE -ne 0) { throw 'Choose an empty GitHub repository for this uncommitted project.' }
-        Invoke-Checked git @('fetch', '--no-tags', '--', $Url, 'refs/heads/main')
-        & git merge-base --is-ancestor FETCH_HEAD HEAD
+        $remoteCommit = ($mainRef[0] -split '\s+')[0]
+        & git rev-parse --verify --quiet "$remoteCommit^{commit}" | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw 'Remote main has commits missing locally. Reconcile the history yourself before rerunning setup.' }
+        & git merge-base --is-ancestor $remoteCommit HEAD
         if ($LASTEXITCODE -ne 0) {
             throw 'Remote main has commits missing locally or unrelated history. Use an empty repository, or reconcile the history before rerunning. Nothing was overwritten.'
         }
@@ -222,8 +279,9 @@ if ($Run) {
     try {
         Enable-Toolchain
         $project = Split-Path -Parent $PSScriptRoot
+        Sync-Frontend $project
         Invoke-Checked "$env:JAVA_HOME\bin\java.exe" @("$PSScriptRoot\CheckPom.java", "$project\pom.xml")
-        Write-Host "Once Spring reports Started, open http://localhost:$Port/api/practice"
+        Write-Host "Once Spring reports Started, open http://localhost:$Port/"
         Write-Host 'Keep this window open. Press Ctrl+C to stop.'
         Invoke-Checked "$env:MAVEN_HOME\bin\mvn.cmd" @('-f', "$project\pom.xml", 'spring-boot:run', "-Dspring-boot.run.arguments=--server.port=$Port")
         exit 0
@@ -245,6 +303,7 @@ try {
     Write-Host 'Setup will publish this folder and its existing Git history to the link you enter.'
     $url = Read-GitHubUrl
     Install-WindowsCommand git 'Git.Git'
+    Sync-Frontend (Get-Location).Path
     Test-GitTarget $url
     $script:DownloadDir = Join-Path ([IO.Path]::GetTempPath()) ("impact-setup-" + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $script:DownloadDir | Out-Null
@@ -255,7 +314,7 @@ try {
     $owner = ($url.Substring('https://github.com/'.Length) -split '/')[0]
     Publish-Project $url $owner "$owner@users.noreply.github.com"
     Write-Host "SUCCESS: uploaded to $url on main." -ForegroundColor Green
-    Write-Host 'Next: run .\setup.cmd run, then open http://localhost:8080/api/practice'
+    Write-Host 'Next: run .\setup.cmd run, then open http://localhost:8080/'
 } catch {
     Write-Host "SETUP STOPPED: $($_.Exception.Message)" -ForegroundColor Red
     Write-Host 'Fix the message above and rerun setup.cmd. Setup never force-pushes.'

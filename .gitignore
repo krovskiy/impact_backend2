@@ -16,3 +16,5 @@ Thumbs.db
 __pycache__/
 
 pom.xml.before-setup-fix.bak
+
+/frontend/

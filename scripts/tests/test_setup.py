@@ -70,14 +70,19 @@ class SetupTests:
             )
             if action == "url":
                 command += f"ConvertTo-GitHubUrl {quote_ps(value)}"
+            elif action == "sync":
+                command += f"Sync-Origin {quote_ps(value)}"
+            elif action == "frontend":
+                command += f"Sync-Frontend (Get-Location).Path {quote_ps(value)}"
             elif action == "publish":
                 command += f"Publish-Project {quote_ps(value)} 'Student' 'student@example.invalid'"
             else:
                 command += f"Test-GitTarget {quote_ps(value)}"
             argv = [PS, "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command]
         else:
-            function = {"url": "normalize_github_url", "publish": "publish_project", "check": "check_git_target"}[action]
-            command = 'set -euo pipefail; source "$1"; ' + function + ' "$2" Student student@example.invalid'
+            function = {"url": "normalize_github_url", "publish": "publish_project", "check": "check_git_target", "sync": "sync_origin", "frontend": "sync_frontend"}[action]
+            arguments = ' "$PWD" "$2"' if action == "frontend" else ' "$2" Student student@example.invalid'
+            command = 'set -euo pipefail; source "$1"; ' + function + arguments
             argv = [BASH, "-c", command, "test", (PROJECT / "scripts/setup-common.sh").as_posix(), value]
         result = subprocess.run(
             argv, cwd=cwd or self.work, env=self.env, text=True, capture_output=True,
@@ -88,6 +93,107 @@ class SetupTests:
         else:
             self.assertNotEqual(result.returncode, 0, output)
         return result.stdout.strip()
+
+    def test_sync_origin_fast_forward_keeps_local_edits(self):
+        remote = self.bare()
+        self.initial_commit()
+        self.git("remote", "add", "origin", remote)
+        self.git("push", "origin", "main")
+        student = self.base / "student clone"
+        self.git("clone", remote, student)
+        (student / "lesson.txt").write_text("local student work\n")
+        (self.work / "new.txt").write_text("teacher update\n")
+        self.git("add", "new.txt")
+        self.git("commit", "-m", "remote update")
+        self.git("push", "origin", "main")
+        self.helper("sync", student.as_posix(), cwd=student)
+        self.assertEqual((student / "new.txt").read_text(), "teacher update\n")
+        self.assertEqual((student / "lesson.txt").read_text(), "local student work\n")
+
+    def test_sync_empty_origin(self):
+        remote = self.bare()
+        before = self.initial_commit()
+        self.git("remote", "add", "origin", remote)
+        self.helper("sync", self.work.as_posix())
+        self.assertEqual(self.git("rev-parse", "HEAD"), before)
+
+    def test_sync_divergence_preserves_local_commits(self):
+        remote = self.bare()
+        self.initial_commit()
+        self.git("remote", "add", "origin", remote)
+        self.git("push", "origin", "main")
+        student = self.base / "student clone"
+        self.git("clone", remote, student)
+        (student / "local.txt").write_text("local commit\n")
+        self.git("add", "local.txt", cwd=student)
+        self.git("commit", "-m", "local change", cwd=student)
+        before = self.git("rev-parse", "HEAD", cwd=student)
+        (self.work / "remote.txt").write_text("different commit\n")
+        self.git("add", "remote.txt")
+        self.git("commit", "-m", "remote change")
+        self.git("push", "origin", "main")
+        self.helper("sync", student.as_posix(), cwd=student, expect_ok=False)
+        self.assertEqual(self.git("rev-parse", "HEAD", cwd=student), before)
+        self.assertFalse((student / "remote.txt").exists())
+
+    def test_sync_refuses_to_overwrite_dirty_file(self):
+        remote = self.bare()
+        self.initial_commit()
+        self.git("remote", "add", "origin", remote)
+        self.git("push", "origin", "main")
+        student = self.base / "student clone"
+        self.git("clone", remote, student)
+        (student / "lesson.txt").write_text("student's unsaved work\n")
+        (self.work / "lesson.txt").write_text("remote lesson change\n")
+        self.git("add", "lesson.txt")
+        self.git("commit", "-m", "remote lesson")
+        self.git("push", "origin", "main")
+        self.git("config", "merge.autoStash", "true", cwd=student)
+        self.helper("sync", student.as_posix(), cwd=student, expect_ok=False)
+        self.assertEqual((student / "lesson.txt").read_text(), "student's unsaved work\n")
+
+    def test_frontend_clone_and_repeat_update(self):
+        remote = self.bare("frontend.git")
+        self.initial_commit()
+        (self.work / "index.html").write_text("<html>first frontend</html>")
+        self.git("add", "index.html")
+        self.git("commit", "-m", "frontend")
+        self.git("remote", "add", "origin", remote)
+        self.git("push", "origin", "main")
+        self.helper("frontend", remote)
+        front = self.work / "frontend"
+        self.assertEqual((front / "index.html").read_text(), "<html>first frontend</html>")
+        (self.work / "index.html").write_text("<html>updated frontend</html>")
+        self.git("add", "index.html")
+        self.git("commit", "-m", "update frontend")
+        self.git("push", "origin", "main")
+        (front / "notes.txt").write_text("keep my notes")
+        self.helper("frontend", remote)
+        self.assertEqual((front / "index.html").read_text(), "<html>updated frontend</html>")
+        self.assertEqual((front / "notes.txt").read_text(), "keep my notes")
+        self.assertEqual(self.git("remote", "get-url", "origin"), remote)
+
+    def test_frontend_existing_non_repo_preserved(self):
+        front = self.work / "frontend"
+        front.mkdir()
+        (front / "index.html").write_text("my frontend")
+        self.helper("frontend", self.bare(), expect_ok=False)
+        self.assertEqual((front / "index.html").read_text(), "my frontend")
+
+    def test_frontend_wrong_origin_rejected(self):
+        remote = self.bare()
+        self.initial_commit()
+        self.git("push", remote, "main")
+        self.git("clone", remote, self.work / "frontend")
+        self.helper("frontend", self.bare("different.git"), expect_ok=False)
+        self.assertEqual(self.git("remote", "get-url", "origin", cwd=self.work / "frontend"), remote)
+
+    def test_frontend_missing_index_rejected(self):
+        remote = self.bare()
+        self.initial_commit()
+        self.git("push", remote, "main")
+        self.helper("frontend", remote, expect_ok=False)
+
 
     def test_urls(self):
         valid = {
@@ -198,6 +304,8 @@ class PowerShellTests(SetupTests, unittest.TestCase):
 
 class BashTests(SetupTests, unittest.TestCase):
     engine = "bash" if BASH else None
+
+
 
 
 class PomTests(unittest.TestCase):

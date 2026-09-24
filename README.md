@@ -19,6 +19,10 @@ There is **no GitHub CLI or scripted sign-in**. Git uses your usual credentials;
 
 Allow a few minutes and follow any system installation/password prompts. macOS installs Homebrew if needed; Debian asks for sudo access. Run as your normal user. Windows needs Microsoft's App Installer (WinGet); setup explains what to do if it is missing.
 
+Both setup and run clone/update only [the frontend](https://github.com/Victoras23/impact_2_year_fe) in the frontend/ folder, using git fetch origin and git pull --ff-only --no-rebase origin main there. The backend is never fetched or pulled by the launchers. Network failures, conflicting frontend edits, or diverged frontend history stop the launcher without discarding work. Setup still commits and pushes the backend to the student's chosen origin; it never commits or pushes the frontend.
+
+The upstream `index.html` already bundles React, JavaScript and CSS, so no Node/npm installation is needed. Maven packages only that file in the backend JAR; `frontend/` stays an independent Git clone and is ignored by the backend repository. Run the launcher again to fetch newer frontend changes.
+
 ## Start the backend
 
 From the project folder:
@@ -28,17 +32,19 @@ From the project folder:
 | Windows | `.\setup.cmd run` |
 | macOS / Debian | `bash setup.sh run` |
 
-Wait for `Started`, then open **http://localhost:8080/api/practice**.
-The response should be `api initialised`. Keep the terminal open; press **Ctrl+C** to stop.
+Wait for `Started`, then open **http://localhost:8080/**.
+The frontend opens at the home page. The API still responds at /api/practice with `api initialised`. Keep the terminal open; press **Ctrl+C** to stop.
 
-If port 8080 is busy, use `.\setup.cmd run 8081` or `bash setup.sh run 8081`.
+If port 8080 is busy, use `.\setup.cmd run 8081` or `bash setup.sh run 8081`. Open http://localhost:8081/ and change the API address in the frontend console to http://localhost:8081 too.
 
 ## If setup stops
 
+- **Fetch/pull fails:** check your connection. If Git reports local changes or diverged commits, resolve those in the named repository, then retry. The launcher never auto-stashes, resets, or force-pulls.
 - **Bad link:** paste the repository page URL, without `/tree/main` or `/blob/...`. HTTPS and GitHub SSH links are accepted.
 - **Cannot access/push:** check the spelling, repository ownership, and your normal Git credentials.
 - **Remote already has different commits:** use an empty repository for first setup. Setup never force-pushes or overwrites remote history.
 - **Non-parseable POM / start tag not allowed in epilog:** dependency blocks were pasted after `</project>`. Setup and run automatically move complete trailing dependencies into the project and save `pom.xml.before-setup-fix.bak`. Reload Maven in IntelliJ afterward. Other malformed XML and ambiguous repairs are left unchanged with instructions; fix those in the editor.
+
 - **Download/build failure:** fix the error shown and rerun the same launcher. Failed builds are not published.
 - **Windows blocks scripts:** use `setup.cmd`. Organization policy may require administrator help.
 - **Incomplete toolchain folder:** rename the exact folder shown by the error, then rerun setup.

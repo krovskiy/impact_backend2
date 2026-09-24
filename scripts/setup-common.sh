@@ -2,6 +2,50 @@
 # Sourced by both platform entry points; compatible with macOS Bash 3.2.
 fail() { printf '\nSETUP STOPPED: %s\n' "$*" >&2; exit 1; }
 
+sync_origin() {
+    local directory="$1" branch state state_path remote_branch
+    if [[ ! -e "$directory/.git" ]]; then
+        printf '%s\n' 'No Git history in this folder yet; skipping its origin update.'
+        return
+    fi
+    if ! git -C "$directory" remote | grep -qx origin; then
+        printf '%s\n' 'No origin configured yet; skipping its update.'
+        return
+    fi
+    branch=$(git -C "$directory" symbolic-ref --quiet --short HEAD) ||
+        fail "Detached HEAD in $directory. Switch to a branch before updating."
+    for state in MERGE_HEAD CHERRY_PICK_HEAD REVERT_HEAD rebase-merge rebase-apply BISECT_LOG; do
+        state_path=$(git -C "$directory" rev-parse --git-path "$state")
+        [[ "$state_path" == /* || "$state_path" == [A-Za-z]:/* ]] || state_path="$directory/$state_path"
+        [[ ! -e "$state_path" ]] || fail "Finish or abort the Git operation in $directory before updating."
+    done
+    printf 'Updating %s from origin/%s...\n' "$directory" "$branch"
+    git -C "$directory" fetch origin
+    remote_branch=$(git -C "$directory" ls-remote --heads origin "refs/heads/$branch")
+    if [[ -z "$remote_branch" ]]; then
+        printf 'Origin has no %s branch yet; nothing to pull.\n' "$branch"
+        return
+    fi
+    git -C "$directory" -c merge.autoStash=false -c rebase.autoStash=false pull --ff-only --no-rebase origin "$branch"
+}
+
+sync_frontend() {
+    local project="$1" repository="${2:-https://github.com/Victoras23/impact_2_year_fe.git}" directory
+    directory="$project/frontend"
+    if [[ ! -e "$directory" ]]; then
+        git clone --branch main -- "$repository" "$directory"
+    else
+        [[ -e "$directory/.git" ]] || fail 'frontend exists but is not a Git clone. Rename that folder and retry; your files were retained.'
+        [[ "$(git -C "$directory" remote get-url origin)" == "$repository" ]] ||
+            fail 'frontend has an unexpected origin. Move it aside or restore its expected origin before retrying.'
+        [[ "$(git -C "$directory" symbolic-ref --quiet --short HEAD)" == main ]] ||
+            fail 'Switch the frontend repository to main before updating.'
+    fi
+    sync_origin "$directory"
+    [[ -s "$directory/index.html" ]] || fail 'The frontend repository has no usable index.html. Check its main branch.'
+}
+
+
 normalize_github_url() {
     local value owner repo
     value=$(printf '%s' "$1" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
@@ -31,7 +75,7 @@ read_github_url() {
 }
 
 check_git_target() {
-    local url="$1" root branch state state_path refs has_repo=0
+    local url="$1" root branch state state_path refs remote_commit has_repo=0
     if root=$(git rev-parse --show-toplevel 2>/dev/null); then
         has_repo=1
         [[ "$(cd "$root" && pwd -P)" == "$(pwd -P)" ]] ||
@@ -51,8 +95,10 @@ check_git_target() {
             fail 'Destination already has history but no main branch. Use a new empty repository, or prepare main yourself.'
         [[ "$has_repo" == 1 ]] || fail 'This ZIP has no Git history. Choose an EMPTY repository (no README, license, or .gitignore).'
         git rev-parse --verify --quiet HEAD >/dev/null || fail 'Choose an empty repository for this uncommitted project.'
-        git fetch --no-tags -- "$url" refs/heads/main
-        git merge-base --is-ancestor FETCH_HEAD HEAD ||
+        remote_commit=$(printf '%s\n' "$refs" | awk '$2 == "refs/heads/main" {print $1}')
+        git cat-file -e "$remote_commit^{commit}" 2>/dev/null ||
+            fail 'Remote main has commits missing locally. Reconcile the history yourself before rerunning setup.'
+        git merge-base --is-ancestor "$remote_commit" HEAD ||
             fail 'Remote main has commits missing locally or unrelated history. Use an empty repository, or reconcile the history first. Nothing was overwritten.'
     fi
     if [[ "$has_repo" == 1 ]] && git rev-parse --verify --quiet HEAD >/dev/null; then
@@ -210,6 +256,7 @@ setup_main() {
     DOWNLOAD_DIR=$(mktemp -d "${TMPDIR:-/tmp}/impact-setup.XXXXXXXX")
     trap '[[ -z "${DOWNLOAD_DIR:-}" ]] || rm -rf -- "$DOWNLOAD_DIR"' EXIT
     install_platform_tools "$platform"
+    sync_frontend "$PWD"
     check_git_target "$TARGET_URL"
     install_toolchains "$platform"
     "$JAVA_HOME/bin/java" "$PWD/scripts/CheckPom.java" "$PWD/pom.xml"
@@ -218,7 +265,7 @@ setup_main() {
     owner=${TARGET_URL#https://github.com/}
     owner=${owner%%/*}
     publish_project "$TARGET_URL" "$owner" "$owner@users.noreply.github.com"
-    printf '\nSUCCESS: uploaded to %s on main.\nNext: bash setup.sh run\nThen open http://localhost:8080/api/practice\n' "$TARGET_URL"
+    printf '\nSUCCESS: uploaded to %s on main.\nNext: bash setup.sh run\nThen open http://localhost:8080/\n' "$TARGET_URL"
 }
 
 start_main() {
@@ -229,8 +276,9 @@ start_main() {
     environment="$HOME/.local/share/impact-backend/toolchains/env.sh"
     [[ -f "$environment" ]] || fail 'Run bash setup.sh first.'
     source "$environment"
+    sync_frontend "$PWD"
     [[ -x "$JAVA_HOME/bin/javac" && -x "$MAVEN_HOME/bin/mvn" ]] || fail 'Java/Maven setup is incomplete. Rerun bash setup.sh.'
-    printf 'Once Spring reports Started, open http://localhost:%s/api/practice\nKeep this window open. Press Ctrl+C to stop.\nIf the port is busy, try: bash setup.sh run 8081\n' "$port"
+    printf 'Once Spring reports Started, open http://localhost:%s/\nKeep this window open. Press Ctrl+C to stop.\nIf the port is busy, try: bash setup.sh run 8081\n' "$port"
     "$JAVA_HOME/bin/java" "$PWD/scripts/CheckPom.java" "$PWD/pom.xml"
     exec "$MAVEN_HOME/bin/mvn" -f "$PWD/pom.xml" spring-boot:run "-Dspring-boot.run.arguments=--server.port=$port"
 }
