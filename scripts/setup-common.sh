@@ -161,6 +161,64 @@ install_platform_tools() {
     git --version
 }
 
+
+# Return a protocol result, not merely an open-port result. Compatible with Bash 3.2.
+local_redis_state() (
+    if ! { exec 3<>/dev/tcp/127.0.0.1/6379; } 2>/dev/null; then
+        printf 'closed\n'
+        return
+    fi
+    local reply=''
+    if printf 'PING\r\n' >&3 && IFS= read -r -t 2 reply <&3 && [[ "$reply" == $'+PONG\r' ]]; then
+        printf 'ready\n'
+    else
+        printf 'occupied\n'
+    fi
+)
+
+install_redis() {
+    local platform="$1" state attempt
+    state=$(local_redis_state)
+    case "$state" in
+        ready)
+            printf '%s\n' 'Redis raspunde PONG pe localhost:6379; folosim serverul existent.'
+            return ;;
+        occupied)
+            fail 'Portul 6379 este ocupat sau Redis cere parola. Verifica serverul existent; configuratia lui nu va fi inlocuita.' ;;
+    esac
+    if [[ "$platform" == mac ]]; then
+        command -v brew >/dev/null 2>&1 || fail 'Ruleaza mai intai bash setup.sh pentru instalarea Homebrew.'
+        brew install redis
+        brew services start redis
+    else
+        sudo apt-get update
+        sudo apt-get install -y redis-server redis-tools
+        if command -v systemctl >/dev/null 2>&1 && [[ -d /run/systemd/system ]]; then
+            sudo systemctl start redis-server
+        else
+            sudo service redis-server start
+        fi
+    fi
+    for attempt in {1..15}; do
+        if [[ "$(local_redis_state)" == ready ]]; then
+            printf '%s\n' 'Redis este pregatit pe localhost:6379. Verificare: redis-cli ping'
+            return
+        fi
+        sleep 1
+    done
+    fail 'Redis nu raspunde PONG pe localhost:6379. Verifica serviciul si configuratia; setup nu modifica parolele sau porturile existente.'
+}
+
+redis_main() {
+    local platform="$1"
+    [[ $EUID -ne 0 ]] || fail 'Ruleaza fara sudo; scriptul cere parola doar cand este necesar.'
+    DOWNLOAD_DIR=$(mktemp -d "${TMPDIR:-/tmp}/impact-setup.XXXXXXXX")
+    trap '[[ -z "${DOWNLOAD_DIR:-}" ]] || rm -rf -- "$DOWNLOAD_DIR"' EXIT
+    install_platform_tools "$platform"
+    install_redis "$platform"
+    printf '%s\n' 'Pentru lectia 3: seteaza spring.cache.type=redis in application-local.properties si reporneste backend-ul.'
+}
+
 setup_main() {
     local platform="$1"
     [[ $EUID -ne 0 ]] || fail 'Run this script as your normal user, without sudo. It asks for your password only for system installs.'
@@ -168,6 +226,7 @@ setup_main() {
     DOWNLOAD_DIR=$(mktemp -d "${TMPDIR:-/tmp}/impact-setup.XXXXXXXX")
     trap '[[ -z "${DOWNLOAD_DIR:-}" ]] || rm -rf -- "$DOWNLOAD_DIR"' EXIT
     install_platform_tools "$platform"
+    install_redis "$platform"
     sync_frontend "$PWD"
     install_toolchains "$platform"
     "$JAVA_HOME/bin/java" "$PWD/scripts/CheckPom.java" "$PWD/pom.xml"
