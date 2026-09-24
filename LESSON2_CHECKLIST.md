@@ -1,34 +1,34 @@
-# Lesson 2: six TODOs
+# Lecția 2: șase TODO-uri
 
-**First:** [prepare PostgreSQL](database/README.md), then start the backend.
-Search your project for `TODO Lesson 2`. Java files are under `src/main/java/com/impact/ecommerce/`.
+**Mai întâi:** [pregătește PostgreSQL](database/README.md), apoi pornește backend-ul.
+Caută `TODO Lesson 2`. Fișierele Java sunt în `src/main/java/com/impact/ecommerce/`.
 
-| Done | TODO | File | Your task |
+| Gata | TODO | Fișier | Ce completezi |
 | --- | --- | --- | --- |
-| [ ] | L2-1 | services/ProductService.java | Filter products by category ID. |
-| [ ] | L2-2 | services/ProductService.java | Put the category name in the response DTO. Handle no category. |
-| [ ] | L2-3 | services/AuthService.java | Hash the password with BCrypt. |
-| [ ] | L2-4 | services/AuthService.java | Check a password against its hash. |
-| [ ] | L2-5 | security/JwtService.java | Create a signed JWT with email, ID, role and expiry. |
-| [ ] | L2-6 | security/JwtFilter.java | Put the authenticated user in the security context. |
+| [ ] | L2-1 | services/ProductService.java | Filtrează produsele după ID-ul categoriei. |
+| [ ] | L2-2 | services/ProductService.java | Pune numele categoriei în DTO; tratează și lipsa categoriei. |
+| [ ] | L2-3 | services/AuthService.java | Calculează hash-ul parolei cu BCrypt. |
+| [ ] | L2-4 | services/AuthService.java | Verifică parola folosind hash-ul salvat. |
+| [ ] | L2-5 | security/JwtService.java | Creează JWT semnat cu email, ID, rol și expirare. |
+| [ ] | L2-6 | security/JwtFilter.java | Pune autentificarea în contextul de securitate. |
 
-## Check your work
+## Verifică
 
-Windows: `.\setup.cmd check`  
-Mac/Linux: `bash setup.sh check`
+Windows: `.\setup.cmd check`. Mac/Linux: `bash setup.sh check`.
 
-**Failures are expected until you finish.** These checks use a temporary in-memory database; PostgreSQL is needed to run the app.
+**Erorile sunt normale până termini exercițiile incluse.** Comanda verifică și lecția 3; baza de test este în memorie. Pentru aplicația pornită normal ai nevoie de PostgreSQL.
 
-Restart the backend after editing. Test in Postman:
+Repornește backend-ul și testează în Postman:
 
-1. `GET http://localhost:8080/api/products` shows seeded products.
-2. `GET http://localhost:8080/api/products?category=1` filters them.
-3. `POST http://localhost:8080/api/auth/register` with JSON `{"email":"student@example.com","password":"password123"}` returns **201** and a token.
-4. `POST http://localhost:8080/api/auth/login` with that JSON returns a token.
-5. `GET http://localhost:8080/api/test/protected`: **401** without a token, **200** with Postman Authorization → Bearer Token.
-6. `GET http://localhost:8080/api/admin/test`: **403** with a USER token, **200** with an ADMIN token.
+1. `GET /api/products`: produsele demonstrative.
+2. `GET /api/products?category=1`: produse filtrate.
+3. `POST /api/auth/register` cu `{"email":"student@example.com","password":"password123"}`: **201** și token. Folosește un email nou.
+4. `POST /api/auth/login` cu aceleași date: token.
+5. `GET /api/test/protected`: **401** fără token; **200** cu Authorization > Bearer Token.
+6. `GET /api/admin/test`: **403** cu token USER; **200** cu token ADMIN.
 
-Seed accounts: `user@impact.md` / `user123`; `admin@impact.md` / `admin123`.
-Login works after the auth TODOs are done. Open **http://localhost:8080/** to try the frontend.
+Adresa de bază: `http://localhost:8080`.
+Conturi demonstrative: `user@impact.md` / `user123` și `admin@impact.md` / `admin123`.
+Autentificarea funcționează după completarea TODO-urilor. După repornire, autentifică-te din nou.
 
-In `psql`, run `SELECT email, role, password_hash FROM users;` — passwords must be hashes.
+În psql: `SELECT email, role, password_hash FROM users;`. Parolele trebuie să fie hash-uri, nu textul original.

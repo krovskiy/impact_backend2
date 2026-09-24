@@ -1,43 +1,44 @@
 # Impact Backend Year 2 - Survival Repo
 
-[Fast catch-up: understand the project and complete Lessons 1-3](docs/LESSONS1_3_CATCHUP.md)
+[Recuperare rapidă: structura proiectului și lecțiile 1–3](docs/LESSONS1_3_CATCHUP.md)
 
-## 1. Get your copy
+## 1. Creează copia ta
 
-On GitHub, click **Use this template > Create a new repository**. Clone **your new repository** and open its folder in IntelliJ.
+Pe GitHub: **Use this template > Create a new repository**. Clonează **repository-ul tău** și deschide folderul în IntelliJ.
 
-## 2. Set up once
+## 2. Pregătește calculatorul
 
-| | Windows | Mac / Debian |
+| Acțiune | Windows | macOS / Debian |
 | --- | --- | --- |
-| Install Java, Maven and Git | Double-click `setup.cmd` | `bash setup.sh` |
+| Instalare Java, Maven, Git și Redis | Dublu clic pe `setup.cmd` | `bash setup.sh` |
+| Doar Redis nativ | `.\setup.cmd redis` | `bash setup.sh redis` |
 
-Set up [PostgreSQL](database/README.md): create the database and save your password in `application-local.properties`. Tables and sample data are prepared automatically when the backend starts. Docker is optional.
+Pe Windows se instalează Memurai; pe Mac/Linux, Redis. Acceptă solicitările de administrator când apar. Un server existent este păstrat. **Docker este opțional.**
 
-## 3. Start and complete the lesson
+Pregătește [PostgreSQL](database/README.md): creează baza și salvează parola în `application-local.properties`. Backend-ul creează tabelele și datele demonstrative la pornire.
 
-Run commands from the project folder:
+## 3. Pornește și verifică
 
-| | Windows PowerShell | Mac / Debian |
+| Acțiune | Windows PowerShell | macOS / Debian |
 | --- | --- | --- |
-| Start backend | `.\setup.cmd run` | `bash setup.sh run` |
-| Check all lesson answers | `.\setup.cmd check` | `bash setup.sh check` |
+| Pornire backend | `.\setup.cmd run` | `bash setup.sh run` |
+| Verificare răspunsuri | `.\setup.cmd check` | `bash setup.sh check` |
 
-Keep PostgreSQL running. After **Started**, open **http://localhost:8080/**. **Ctrl+C** stops the backend; restart after editing.
+După mesajul **Started**, deschide **http://localhost:8080/**. PostgreSQL trebuie să ruleze. **Ctrl+C** oprește backend-ul; repornește-l după modificări.
 
-**Completed answers for Lessons 1, 2 and 3 are on this branch.** Student TODOs are on [main](https://github.com/krovskiy/impact_backend2_starter/tree/main). Follow [Lesson 3](LESSON3_CHECKLIST.md) to enable Redis and test Swagger.
+**Pe această ramură sunt completate răspunsurile pentru lecțiile 1–3.** Exercițiile sunt pe [main](https://github.com/krovskiy/impact_backend2_starter/tree/main). Urmează [lecția 3](LESSON3_CHECKLIST.md) pentru activarea Redis și Swagger.
 
-## 4. Save to your GitHub
+## 4. Salvează lucrul
+
+În repository-ul tău:
 
 ```sh
-git switch -c feature/my-lesson
+git switch -c feature/lectia-mea
 git add .
-git commit -m "Complete lesson exercises"
+git commit -m "feat: complete lesson exercises"
 git push -u origin HEAD
 ```
 
-Open a pull request to your own main and review the diff. Lesson 3 adds optional Redis and Swagger: follow its checklist.
+Deschide un Pull Request către propriul `main` și verifică diferențele. Setup păstrează origin și nu face automat commit sau push.
 
-Setup keeps your repository's origin and does not commit or push for you.
-
-[Completed answers: solution branch](https://github.com/krovskiy/impact_backend2_starter/tree/solution).
+Liste de verificare: [lecția 1](LESSON1_CHECKLIST.md), [lecția 2](LESSON2_CHECKLIST.md), [lecția 3](LESSON3_CHECKLIST.md). [Răspunsuri: solution](https://github.com/krovskiy/impact_backend2_starter/tree/solution).

@@ -1,42 +1,42 @@
-# Lesson 3: Redis, Swagger and Git
+# Lecția 3: Redis, Swagger și Git
 
-First finish Lesson 2, start PostgreSQL, and [enable Redis](database/README.md#lesson-3-redis-optional-for-earlier-lessons).
+Termină lecția 2, pornește PostgreSQL și [activează Redis](database/README.md#redis-pentru-lectia-3).
 
-Search for `TODO Lesson 3`. Java files are under `src/main/java/com/impact/ecommerce/`.
+Caută `TODO Lesson 3` în `src/main/java/com/impact/ecommerce/`.
 
-| Done | TODO | File | Task |
+| Gata | TODO | Fișier | Ce completezi |
 | --- | --- | --- | --- |
-| [ ] | L3-1 | services/ProductService.java | Enable product caching with separate keys for all products and each category. |
-| [ ] | L3-2 | services/ProductService.java | Enable category caching. |
-| [ ] | L3-3 | services/ProductService.java | Evict all product lists after create, update AND delete. |
-| [ ] | L3-4 | services/CatalogCacheService.java | Enable clearing both caches and remove the placeholder throw. |
-| [ ] | L3-5 | config/OpenApiConfig.java | Add the JWT `bearerAuth` security scheme. |
-| [ ] | L3-6 | controllers/CatalogController.java | Complete the product-list summary; review every route's responses. |
+| [ ] | L3-1 | services/ProductService.java | Cache pentru produse, cu chei diferite pentru toate produsele și fiecare categorie. |
+| [ ] | L3-2 | services/ProductService.java | Cache pentru categorii. |
+| [ ] | L3-3 | services/ProductService.java | Invalidarea tuturor listelor de produse după create, update ȘI delete. |
+| [ ] | L3-4 | services/CatalogCacheService.java | Activarea golirii ambelor cache-uri și eliminarea excepției TODO. |
+| [ ] | L3-5 | config/OpenApiConfig.java | Schema JWT `bearerAuth`. |
+| [ ] | L3-6 | controllers/CatalogController.java | Descrierea listei de produse și verificarea răspunsurilor documentate. |
 
-## Prove it works
+## Demonstrează că funcționează
 
-1. Run `.\setup.cmd check` (Windows) or `bash setup.sh check` (Mac/Linux). These checks do not need Redis; complete all included lesson TODOs first.
-2. Start the app. Open **http://localhost:8080/swagger-ui/index.html** and **http://localhost:8080/v3/api-docs**.
-3. In Swagger, log in as `admin@impact.md` / `admin123`. Copy `token`, click **Authorize**, paste the token without `Bearer`, and try `/api/admin/test`.
-4. Request `/api/products` twice. Inspect Redis: `redis-cli --scan --pattern 'products::*'`, then `redis-cli TTL products::all` (between 1 and 60 seconds).
-5. Request `/api/categories` twice. Inspect `categories::all` too.
-6. `POST /api/cache/clear`; cached keys disappear, PostgreSQL data stays. The next read repopulates Redis.
-7. Create/update/delete a product as ADMIN. All product-cache keys must disappear after each successful write.
+1. Rulează `.\setup.cmd check` sau `bash setup.sh check`. Testele automate nu cer Redis; trebuie să termini exercițiile incluse.
+2. Pornește aplicația. Deschide **http://localhost:8080/swagger-ui/index.html** și **http://localhost:8080/v3/api-docs**.
+3. În Swagger, autentifică-te cu `admin@impact.md` / `admin123`. Copiază tokenul, apasă **Authorize** și lipește-l fără prefixul `Bearer`. Testează `/api/admin/test`.
+4. Cere `/api/products` de două ori. Inspectează cheile și TTL-ul folosind comenzile din ghidul bazei de date.
+5. Cere `/api/categories` și verifică `categories::all`.
+6. Trimite `POST /api/cache/clear`. Cheile dispar; datele din PostgreSQL rămân. Următoarea citire reface cache-ul.
+7. Creează, modifică și șterge un produs ca ADMIN. După fiecare scriere reușită, cheile produselor trebuie invalidate.
 
-On Windows, use `memurai-cli` instead of `redis-cli`. Docker commands are in the database guide. Timing alone is not proof: use keys, TTL and the tests. TTL expiry removes a key even without a write.
+TTL-ul este de 60 de secunde. Viteza singură nu demonstrează caching-ul. Frontend-ul recitește produsele după golire, deci poate recrea imediat cheile.
 
-## Submit your homework
+## Predă tema
 
-Run in **your own template repository**:
+În **repository-ul tău**:
 
 ```sh
 git switch main
 git pull --ff-only origin main
 git switch -c feature/l3-redis-cache
-# Complete the TODOs, then:
+# Completează TODO-urile, apoi:
 git add .
 git commit -m "feat: add Redis caching and Swagger"
 git push -u origin feature/l3-redis-cache
 ```
 
-On GitHub, open a PR to your `main`. Read the entire diff, ask a classmate for review, and merge after checks pass. Include screenshots of Swagger Authorize, Redis keys/TTL, and before/after cache clearing. Teacher reference: `solution` branch.
+Deschide un PR către propriul `main`. Citește toate diferențele, cere verificarea unui coleg și integrează după ce trec testele. Include capturi cu Swagger Authorize, cheile/TTL și golirea cache-ului. Răspunsurile de referință sunt pe `solution`.

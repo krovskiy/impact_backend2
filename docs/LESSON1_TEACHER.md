@@ -1,12 +1,12 @@
-# Lesson 1: teacher guide and answers
+# Lecția 1: ghid pentru profesor și răspunsuri
 
-Goal: five HTTP methods, request bodies and browser CORS. Allow 20 minutes: 5 for the request/response example, 10 to fill the TODOs, 5 to test.
+Scop: cinci metode HTTP, corpul cererii și CORS. Plan de 20 de minute: 5 pentru exemplu, 10 pentru TODO-uri, 5 pentru verificare.
 
-Start with [the student checklist](../LESSON1_CHECKLIST.md). PostgreSQL is needed to run the current cumulative project; Redis is optional. Keep later lesson TODOs for their own class.
+Pornește de la [lista elevului](../LESSON1_CHECKLIST.md). Proiectul cumulativ cere PostgreSQL; Redis poate rămâne dezactivat până la lecția 3.
 
-## Answers
+## Răspunsuri
 
-In `config/CorsConfig.java`:
+În `config/CorsConfig.java`:
 
 ```java
 registry.addMapping("/**")
@@ -15,9 +15,9 @@ registry.addMapping("/**")
         .allowedHeaders("*");
 ```
 
-This broad CORS rule is for local classroom practice. It does not grant API authorization.
+Regula largă este pentru practica locală. Nu acordă drepturi de autentificare sau ADMIN.
 
-In `controllers/PracticeController.java`, use these return statements in the matching methods:
+În metodele corespunzătoare din `controllers/PracticeController.java`:
 
 ```java
 // GET
@@ -32,8 +32,10 @@ return ResponseEntity.ok("you have updated the : " + body);
 return ResponseEntity.ok("youve deleted : " + body);
 ```
 
-## Demonstration
+Textele API rămân în engleză deoarece sunt contractul verificat de teste și frontend.
 
-Send each request to `/api/practice` in Postman; for writes, use raw JSON `{"name":"demo"}` and `Content-Type: application/json`. Compare text exactly with the checklist. Then use the frontend's Lesson 1 API console. Explain that CORS affects browsers; a successful Postman request alone does not prove the CORS rule is correct.
+## Demonstrație
 
-The `solution` branch includes automated checks for all responses and browser preflight methods. From Lesson 3 onward, students save changes on feature branches and open a PR in their own repository.
+Trimite cererile la `/api/practice` în Postman. Pentru scrieri folosește JSON brut `{"name":"demo"}` și `Content-Type: application/json`. Compară inclusiv spațiile. Apoi verifică consola lecției 1 din frontend.
+
+Explică faptul că Postman nu verifică regulile CORS ale browserului. Ramura `solution` include teste pentru răspunsurile exacte și toate preflight-urile. Din lecția 3, elevii folosesc o ramură de lucru și un PR în propriul repository.

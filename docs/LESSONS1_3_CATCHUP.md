@@ -1,173 +1,169 @@
-# Lessons 1-3: from the starter to the solution
+# Lecțiile 1–3: de la exerciții la soluție
 
-Use this guide during the catch-up lesson. Read the structure first, then work through the code changes in order. Each change includes what it does and where it goes.
+Ghid pentru recuperarea rapidă la clasă. Mai întâi înțelegem structura, apoi modificăm codul în ordine. Versiunea aceasta corespunde proiectului până la lecția 3; lecțiile următoare pot adăuga alte fișiere.
 
-This guide matches the Lesson 3 version of this repository. Start from **main**. **solution** already contains these answers. Later lessons may add more files and exercises.
+Pornește din **main**. Pe **solution**, răspunsurile sunt deja completate. Rezervă aproximativ **60–75 de minute după instalarea instrumentelor și a bazelor de date**.
 
-## 1. Understand the project before editing
+## 1. Înțelege proiectul înainte să modifici cod
 
-### What are we building?
+### Ce construim?
 
-The **frontend** is the page a person sees. The **backend** is the Java program that handles requests from that page. **PostgreSQL** stores permanent data. **Redis** stores temporary copies of public catalog responses to make repeated reads faster.
+**Frontend-ul** este pagina văzută în browser. **Backend-ul** este programul Java care primește cereri de la pagină. **PostgreSQL** păstrează datele permanent. **Redis** păstrează temporar copii ale răspunsurilor publice pentru citiri mai rapide.
 
-An **API endpoint** is a URL plus an HTTP method. For example, `GET /api/products` means "give me the product list"; `POST /api/products` means "create a product".
+Un **endpoint** este o adresă și o metodă HTTP. `GET /api/products` citește produsele; `POST /api/products` creează unul. O **cerere** merge către backend, un **răspuns** revine către client. Datele sunt frecvent JSON: `{"name":"Book","price":10}`.
 
-A **request** travels to the backend. A **response** travels back, usually as JSON. JSON is text containing named values, such as `{"name":"Book","price":10}`.
-
-### How the folders fit together
+### Drumul unei cereri
 
 ```text
 Browser / Postman / Swagger
-          |
-          v
-Security filter -- checks a supplied JWT and identifies the user
-          |
-          v
-Controller -- chooses the Java method for the requested URL
-          |
-          v
-Service -- applies the rules and prepares a response
-          |
-          +---- Redis: return a cached catalog response if present
-          |
-          v
-Repository -- reads/writes database rows
-          |
-          v
+           |
+           v
+Filtru JWT: verifică tokenul trimis și identifică utilizatorul
+           |
+           v
+Controller: alege metoda Java pentru adresa cerută
+           |
+           v
+Service: aplică regulile și pregătește răspunsul
+           |
+           +---- Redis: întoarce copia salvată dacă există
+           |
+           v
+Repository: citește/scrie rânduri în PostgreSQL
+           |
+           v
 PostgreSQL
 
-The response travels back through the service and controller.
+Răspunsul revine prin service și controller.
 ```
 
-A **class** groups data and behavior. A **method** is a named action inside a class. A **package** groups related Java files.
+O **clasă** grupează date și comportament. O **metodă** este o acțiune dintr-o clasă. Un **pachet** grupează fișiere Java înrudite.
 
-Spring creates and connects application objects for us. For example, the `ProductService` constructor asks for repositories; Spring supplies them. We do not manually create a service every time a request arrives.
+Spring creează și conectează obiectele. De exemplu, constructorul ProductService cere repository-urile, iar Spring le furnizează. Nu creăm manual un serviciu nou pentru fiecare cerere.
 
-### Root files and supporting folders
+### Fișierele din rădăcină și instrumentele
 
-| File or folder | Purpose |
+| Fișier / folder | Rol |
 | --- | --- |
-| `pom.xml` | Maven's project recipe: Java 21, libraries, packaged resources and test settings. |
-| `setup.cmd` | Windows entry point: setup, run, database or checks. |
-| `setup.sh` | Mac/Linux entry point; selects the correct platform script. |
-| `scripts/setup-windows.ps1` | Windows tool installation, frontend update, build and run commands. |
-| `scripts/setup-macos.sh` | macOS entry point for the shared shell helpers. |
-| `scripts/setup-debian.sh` | Debian entry point for those same helpers. |
-| `scripts/setup-common.sh` | Shared Mac/Debian setup, run, database and test functions. |
-| `scripts/CheckPom.java` | Checks the Maven XML and repairs the known misplaced-dependency mistake when safe. |
-| `scripts/tests/test_setup.py` | Tests setup helpers with disposable Git repositories. |
-| `.gitignore` | Lists local files Git should leave untracked, such as passwords, build output and frontend. Already tracked files remain tracked. |
-| `.gitattributes` | Keeps line endings suitable for Windows and shell scripts. |
-| `README.md` | Short startup instructions and lesson links. |
-| `LESSON1_CHECKLIST.md`, `LESSON2_CHECKLIST.md`, `LESSON3_CHECKLIST.md` | Student tasks and checks for each lesson. |
-| `docs/LESSON1_TEACHER.md`, `docs/LESSON2_TEACHER.md`, `docs/LESSON3_TEACHER.md` | Individual lesson plans and answer keys. |
-| `docs/LESSONS1_3_CATCHUP.md` | This combined walkthrough. |
-| `frontend/` | Separate frontend checkout. Its `index.html` is served by Java. Leave its code and Git remote alone. |
-| `target/` | Generated classes, packaged application and test reports. Maven rebuilds it; don't edit it. |
-| `.git/` | Git's history and branch information; don't edit it manually. |
+| `pom.xml` | Rețeta Maven: Java 21, biblioteci, resurse incluse în aplicație și setări de test. |
+| `setup.cmd` | Punctul de pornire Windows: instalare, run, redis, db, check. |
+| `setup.sh` | Punctul de pornire Mac/Linux; alege scriptul platformei. |
+| `scripts/setup-windows.ps1` | Instalează instrumentele și Memurai, actualizează frontend-ul, construiește și pornește aplicația. |
+| `scripts/setup-macos.sh` | Apelează funcțiile comune pentru macOS. |
+| `scripts/setup-debian.sh` | Apelează funcțiile comune pentru Debian. |
+| `scripts/setup-common.sh` | Instalare Java/Maven/Redis, actualizare frontend, pornire și teste pe Mac/Linux. |
+| `scripts/CheckPom.java` | Verifică XML-ul Maven și repară, când este sigur, greșeala cunoscută cu dependențe după finalul documentului. |
+| `scripts/tests/test_setup.py` | Verifică scripturile folosind repository-uri Git temporare și instalări simulate. |
+| `.gitignore` | Exclude fișiere locale, parole, frontend și rezultate generate. Fișierele deja urmărite rămân urmărite. |
+| `.gitattributes` | Normalizează terminatorii de linie pentru Windows și scripturile shell. |
+| `README.md` | Pașii scurți de pornire și legăturile către lecții. |
+| `LESSON1_CHECKLIST.md`, `LESSON2_CHECKLIST.md`, `LESSON3_CHECKLIST.md` | Exercițiile și verificările elevilor. |
+| `docs/LESSON1_TEACHER.md`, `docs/LESSON2_TEACHER.md`, `docs/LESSON3_TEACHER.md` | Planurile individuale și răspunsurile profesorului. |
+| `docs/LESSONS1_3_CATCHUP.md` | Acest ghid combinat. |
+| `frontend/` | Repository separat. Java servește `index.html`. Nu modifica sursele sau remote-ul lui. |
+| `target/` | Clase compilate, JAR și rapoarte de test generate de Maven. Nu le edita. |
+| `.git/` | Istoricul și ramurile Git. Nu modifica manual conținutul. |
 
-### Database and settings files
+### Baza de date și setările
 
-| File | Purpose |
+| Fișier | Rol |
 | --- | --- |
-| `database/create_database.sql` | Creates the PostgreSQL database named `e-commerce` when missing; run using psql. |
-| `database/create_tables.sql` | Creates missing `users`, `categories` and `products` tables. Does not automatically upgrade existing columns. |
-| `database/insert_data.sql` | Adds sample products, categories and classroom accounts without resetting matching existing records. |
-| `database/compose.yaml` | Optional Docker PostgreSQL; optional Lesson 3 Redis profile. Native services also work. |
-| `database/README.md` | Native/Docker database and Redis setup instructions. |
-| `database/application-local.properties.example` | Template for your local database settings. |
-| `application-local.properties` | Your local passwords and optional Redis settings; ignored by Git. |
-| `src/main/resources/application.properties` | Shared ports, database defaults, SQL initialization, JWT and Redis settings. SQL runs before JPA validates the tables. |
-| `src/test/resources/application-test.properties` | Isolated H2 database settings for automated tests. Tests do not modify classroom PostgreSQL. |
+| `database/create_database.sql` | Creează baza `e-commerce` dacă lipsește; se execută cu psql. |
+| `database/create_tables.sql` | Creează tabelele lipsă users, categories și products; nu actualizează automat coloane existente. |
+| `database/insert_data.sql` | Adaugă date și conturi demonstrative fără resetarea înregistrărilor existente. |
+| `database/compose.yaml` | PostgreSQL și Redis opționale în Docker. |
+| `database/README.md` | Instrucțiuni pentru instalarea nativă sau Docker. |
+| `database/application-local.properties.example` | Model pentru setările locale. |
+| `application-local.properties` | Parolele locale și activarea Redis; ignorat de Git. Numele trebuie să fie exact acesta, nu .settings. |
+| `src/main/resources/application.properties` | Setări comune: porturi, SQL, JWT și Redis. Inițializarea SQL are loc înainte de validarea JPA. |
+| `src/test/resources/application-test.properties` | Baza H2 izolată pentru teste; nu modifică PostgreSQL-ul elevului. |
 
-### Every Java file and its job
+### Fiecare fișier Java și scopul lui
 
-All paths in this table start at `src/main/java/com/impact/ecommerce/`.
+Toate căile de mai jos pornesc din `src/main/java/com/impact/ecommerce/`.
 
-| File | Purpose |
+| Fișier | Rol |
 | --- | --- |
-| `Lesson1BackendApplication.java` | The Java entry point that starts Spring Boot. Its old name does not limit it to Lesson 1. |
-| `config/CorsConfig.java` | Which browser origins, HTTP methods and headers may call the API. CORS is not a login system. |
-| `config/SecurityConfig.java` | Which routes are public, need login, or require ADMIN. Also supplies BCrypt and installs the JWT filter. |
-| `config/CacheConfig.java` | Enables Spring caching and configures typed Redis JSON, a 60-second lifetime and eviction after successful transactions. |
-| `config/OpenApiConfig.java` | API title and the JWT scheme used by Swagger's Authorize button. |
-| `controllers/PracticeController.java` | The five Lesson 1 request/response exercises. |
-| `controllers/AuthController.java` | Registration/login URLs; validates input and calls AuthService. |
-| `controllers/CatalogController.java` | Product/category reads and ADMIN product writes. Includes Swagger descriptions. |
-| `controllers/TestController.java` | Small authenticated and ADMIN routes for checking permissions. |
-| `controllers/CacheController.java` | `POST /api/cache/clear`; asks the cache service to clear catalog caches. |
-| `services/AuthService.java` | Registration rules, duplicate emails, password hashing/checking and auth responses. |
-| `services/ProductService.java` | Lists, filters, maps, creates, updates and deletes products; also lists categories. Caching belongs here. |
-| `services/CatalogCacheService.java` | Clears only product/category caches through Spring's caching annotations. |
-| `repositories/UserRepository.java` | Finds users by email and checks whether an email already exists. |
-| `repositories/ProductRepository.java` | Product storage, category filtering and name queries. Spring implements the repository interface. |
-| `repositories/CategoryRepository.java` | Category storage and lookup. |
-| `entities/User.java` | Maps a user row: ID, email, password hash, role and creation time. |
-| `entities/Role.java` | The allowed roles: USER and ADMIN. |
-| `entities/Product.java` | Maps a product row and its optional category relationship. Uses BigDecimal for prices. |
-| `entities/Category.java` | Maps a category row: ID and name. |
-| `dtos/auth/RegisterRequest.java` | Allowed registration fields and validation rules. Does not accept an ADMIN role. |
-| `dtos/auth/LoginRequest.java` | Email/password input and validation rules for login. |
-| `dtos/auth/AuthResponse.java` | The returned token, user ID, email and role. No password hash. |
-| `dtos/product/CreateProductRequest.java` | Validated input for creating/updating a product. |
-| `dtos/product/ProductResponse.java` | Public product JSON. Includes category ID/name and a `category` alias for the frontend. |
-| `dtos/product/CategoryResponse.java` | Public category ID/name JSON. |
-| `security/JwtService.java` | Signs tokens and verifies their signature/expiry. A signed JWT is not encrypted; never put passwords in it. |
-| `security/JwtFilter.java` | Reads `Authorization: Bearer <token>`, validates it, loads the user's role and identifies the current request. |
-| `exceptions/ApiExceptionHandler.java` | Converts known failures into clear JSON error responses and HTTP status codes. |
-| `exceptions/LessonTodo.java` | Returns 501 for unfinished exercises. Remove the placeholder call when implementing that task. |
-| `package-info.java` files | Package-level comments. They do not execute code; some still describe the earlier empty scaffold. |
+| `Lesson1BackendApplication.java` | Pornește Spring Boot. Numele vechi nu limitează aplicația la lecția 1. |
+| `config/CorsConfig.java` | Decide ce origini, metode și antete ale browserului sunt permise. Nu autentifică utilizatorul. |
+| `config/SecurityConfig.java` | Decide ce rute sunt publice, autentificate sau ADMIN; configurează BCrypt și filtrul JWT. |
+| `config/CacheConfig.java` | Activează caching-ul și configurează JSON Redis, TTL de 60 secunde și invalidarea după tranzacție. |
+| `config/OpenApiConfig.java` | Titlul API și schema JWT folosită de butonul Authorize. |
+| `controllers/PracticeController.java` | Cele cinci exerciții HTTP din lecția 1. |
+| `controllers/AuthController.java` | Rutele register/login; validează datele și apelează AuthService. |
+| `controllers/CatalogController.java` | Citirea produselor/categoriilor și scrierile ADMIN; documentația Swagger. |
+| `controllers/TestController.java` | Rute mici pentru verificarea autentificării și rolului ADMIN. |
+| `controllers/CacheController.java` | Ruta POST /api/cache/clear; cere golirea cache-urilor catalogului. |
+| `services/AuthService.java` | Reguli de înregistrare, email duplicat, parole și răspunsuri de autentificare. |
+| `services/ProductService.java` | Listează, filtrează, transformă, creează, modifică și șterge produse; listează și categoriile. |
+| `services/CatalogCacheService.java` | Golește cache-urile produselor și categoriilor prin adnotările Spring. |
+| `repositories/UserRepository.java` | Caută utilizatori după email și verifică dacă emailul există. |
+| `repositories/ProductRepository.java` | Acces la produse și interogări după categorie sau nume. |
+| `repositories/CategoryRepository.java` | Acces la categorii. Spring implementează aceste interfețe. |
+| `entities/User.java` | Reprezintă rândul utilizatorului: ID, email, hash, rol, data creării. |
+| `entities/Role.java` | Rolurile permise: USER și ADMIN. |
+| `entities/Product.java` | Reprezintă produsul și relația opțională cu categoria; prețul folosește BigDecimal. |
+| `entities/Category.java` | Reprezintă categoria: ID și nume. |
+| `dtos/auth/RegisterRequest.java` | Câmpurile și validările înregistrării; nu acceptă alegerea rolului ADMIN. |
+| `dtos/auth/LoginRequest.java` | Email/parolă și validări pentru login. |
+| `dtos/auth/AuthResponse.java` | Token, ID, email și rol; fără hash-ul parolei. |
+| `dtos/product/CreateProductRequest.java` | Date validate pentru crearea/modificarea produsului. |
+| `dtos/product/ProductResponse.java` | JSON public al produsului; include aliasul category cerut de frontend. |
+| `dtos/product/CategoryResponse.java` | ID/nume public al categoriei. |
+| `security/JwtService.java` | Semnează tokenuri și verifică semnătura/expirarea. JWT semnat nu înseamnă criptat. |
+| `security/JwtFilter.java` | Citește Authorization: Bearer, validează tokenul și identifică utilizatorul și rolul curent. |
+| `exceptions/ApiExceptionHandler.java` | Transformă erorile cunoscute în JSON și coduri HTTP clare. |
+| `exceptions/LessonTodo.java` | Întoarce 501 pentru exercițiile neterminate; elimini apelul când completezi exercițiul. |
+| `package-info.java` | Comentarii despre pachete, fără cod executabil. Unele descriu încă structura inițială. |
 
-An **entity** represents database data. A **DTO** is a small object describing what may cross the API boundary. We use DTOs so database internals and password hashes don't accidentally become API responses.
+O **entitate** reprezintă datele din bază. Un **DTO** precizează ce date pot intra sau ieși prin API. DTO-urile împiedică expunerea accidentală a detaliilor bazei și a hash-urilor parolelor.
 
-### Test files
+### Testele
 
-These live under `src/test/java/com/impact/ecommerce/`.
+În `src/test/java/com/impact/ecommerce/`:
 
-| File | What it proves |
+| Fișier | Verifică |
 | --- | --- |
-| `Lesson1BackendApplicationTests.java` | Frontend serving, practice route and private-file protection. The solution adds exact response and CORS checks. |
-| `Lesson2Tests.java` | Validation, password rules, registration, JWT and permissions. Completion tests are tagged `lesson-complete`. |
-| `Lesson3Tests.java` | Swagger, Redis DTO serialization/TTL configuration, cache hits and invalidation. Cache behavior tests use an in-memory cache; live Redis must also be checked. |
+| `Lesson1BackendApplicationTests.java` | Servirea frontend-ului, ruta practice și protecția fișierelor private; solution adaugă răspunsurile exacte și CORS. |
+| `Lesson2Tests.java` | Validare, parole, înregistrare, JWT și permisiuni. |
+| `Lesson3Tests.java` | Swagger, serializare/TTL Redis, hit-uri și invalidare. Comportamentul cache este testat în memorie; verificăm separat Redis real. |
 
-### Java/Spring notation you will see
+### Notații întâlnite în cod
 
-| Notation | Meaning here |
+| Notație | Înțeles |
 | --- | --- |
-| `@RestController` | This class handles HTTP requests. |
-| `@GetMapping` / `@PostMapping` | This method handles a particular URL and HTTP action. |
-| `@Service` | Application rules live in this Spring-managed object. |
-| `@Entity` | This class maps to a database table. |
-| `@Valid` | Check the request's validation rules before running the controller method. |
-| `@Transactional` | Group database work into a transaction: commit successfully or roll back. |
-| `@Cacheable` | Return a cached value on a hit; otherwise run the method and cache its result. |
-| `@CacheEvict` | Remove cached values after a successful call. |
-| `@Operation` / `@ApiResponse` | Describe an endpoint and its possible responses in Swagger. |
-| `return` | Finish a method and give its result to the caller. |
-| `throw` | Stop normal execution with an error. |
-| `null` | No value was supplied or no related object exists. |
+| `@RestController` | Clasa primește cereri HTTP. |
+| `@GetMapping` / `@PostMapping` | Metoda Java răspunde unei adrese și unei metode HTTP. |
+| `@Service` | Obiect gestionat de Spring care conține regulile aplicației. |
+| `@Entity` | Clasa corespunde unui tabel. |
+| `@Valid` | Verifică regulile datelor înaintea executării controllerului. |
+| `@Transactional` | Grupează operațiile: commit la succes sau rollback la eroare. |
+| `@Cacheable` | La hit întoarce copia din cache; la miss execută metoda și salvează rezultatul. |
+| `@CacheEvict` | Elimină valori din cache după un apel reușit. |
+| `@Operation` / `@ApiResponse` | Descrie ruta și răspunsurile în Swagger. |
+| `return` | Încheie metoda și întoarce rezultatul. |
+| `throw` | Oprește execuția normală cu o eroare. |
+| `null` | Valoare absentă. |
 
-## 2. Prepare once before the fast lesson
+## 2. Pregătire înainte de oră
 
-Budget about **60-75 minutes for the walkthrough after tools and databases are ready**. Installation can take longer; do it before class.
+1. În copia ta de main creează o ramură de lucru: `git switch -c feature/recuperare-1-3`.
+2. Rulează setup o singură dată: `setup.cmd` sau `bash setup.sh`.
+3. Urmează [pregătirea PostgreSQL](../database/README.md). Creează e-commerce și salvează parola local.
+4. Inițial folosește `spring.cache.type=none` în `application-local.properties`.
+5. Pornește: `.\setup.cmd run` sau `bash setup.sh run`. Deschide http://localhost:8080/.
+6. Oprește cu Ctrl+C și repornește după fiecare grup de modificări. Reîncărcarea automată Java nu este configurată.
 
-1. Work in your own template repository, starting from `main`. Create a feature branch before editing.
-2. Run setup once: double-click `setup.cmd` or run `bash setup.sh`.
-3. Follow [database setup](../database/README.md): start PostgreSQL, create `e-commerce` and set your local password.
-4. Keep Redis disabled initially: `spring.cache.type=none` in `application-local.properties`.
-5. Start with `.\setup.cmd run` or `bash setup.sh run`. Open `http://localhost:8080/`.
-6. Stop with Ctrl+C and restart after each group of edits. There is no automatic Java reload configured.
+Tabelele/datele demonstrative sunt pregătite la pornire. GET products funcționează înaintea completării tuturor exercițiilor. Autentificarea rămâne blocată până termini TODO-urile corespunzătoare.
 
-The tables/sample data are prepared on startup. GET products should work before the exercises are finished. Registration/login will not work until the relevant Lesson 2 TODOs are completed.
+## 3. Lecția 1: cereri, răspunsuri și CORS
 
-## 3. Lesson 1: requests, responses and CORS (10 minutes)
+Căile Java scurte pornesc din `src/main/java/com/impact/ecommerce/`.
+Înlocuiește codul în clasa existentă. **Nu adăuga o a doua metodă cu același nume.** Păstrează importurile, mapping-urile și adnotările pregătite.
 
-**All short Java paths below start at `src/main/java/com/impact/ecommerce/`.**
-Replace the shown code inside the existing class. Do not paste a second method with the same name. Keep the prepared imports, mappings and Swagger annotations unless told otherwise.
+### 3.1. Permite cererile browserului
 
-### 3.1 Allow the lesson's browser requests
-
-File: `config/CorsConfig.java`. Replace the body of `addCorsMappings` with:
+În `config/CorsConfig.java` înlocuiește corpul metodei `addCorsMappings`:
 
 ```java
 registry.addMapping("/**")
@@ -176,13 +172,13 @@ registry.addMapping("/**")
         .allowedHeaders("*");
 ```
 
-`OPTIONS` is used for browser preflight checks. These broad origins are for local classroom practice.
+OPTIONS este folosit pentru verificările preflight. Originile largi sunt pentru practica locală.
 
-### 3.2 Complete the practice responses
+### 3.2. Completează răspunsurile practice
 
-File: `controllers/PracticeController.java`. Replace only the return statement in each matching method:
+În `controllers/PracticeController.java` înlocuiește numai return-ul metodei corespunzătoare:
 
-| Method | Required return statement |
+| Metodă | Return |
 | --- | --- |
 | `getPractice` | `return ResponseEntity.ok("api initialised");` |
 | `postPractice` | `return ResponseEntity.ok("youve posted: " + body);` |
@@ -190,13 +186,13 @@ File: `controllers/PracticeController.java`. Replace only the return statement i
 | `patchPractice` | `return ResponseEntity.ok("you have updated the : " + body);` |
 | `deletePractice` | `return ResponseEntity.ok("youve deleted : " + body);` |
 
-Test `/api/practice` in Postman with all five methods. For writes, choose raw JSON and send `{"name":"demo"}`. Spaces and punctuation matter. Then test the frontend's Lesson 1 console; Postman alone doesn't check browser CORS.
+Textele sunt intenționat în engleză: testele și frontend-ul verifică inclusiv spațiile. În Postman testează toate metodele pe /api/practice, cu JSON brut `{"name":"demo"}` pentru scrieri. Apoi testează browserul; Postman nu verifică CORS.
 
-## 4. Lesson 2: database access, passwords and JWT (20 minutes)
+## 4. Lecția 2: bază de date, parole și JWT
 
-### 4.1 Filter products by category: L2-1
+### 4.1. Filtrarea produselor: L2-1
 
-File: `services/ProductService.java`. Replace `selectProducts` with:
+În `services/ProductService.java` înlocuiește metoda `selectProducts`:
 
 ```java
 private List<Product> selectProducts(Long categoryId) {
@@ -205,21 +201,21 @@ private List<Product> selectProducts(Long categoryId) {
 }
 ```
 
-No category means all products. A category ID means use the repository's filtered query.
+Fără categorie întoarcem toate produsele; cu ID folosim interogarea filtrată.
 
-### 4.2 Put the category name in the DTO: L2-2
+### 4.2. Numele categoriei în DTO: L2-2
 
-In `ProductService.toResponse`, replace `String categoryName = null;` with:
+În `ProductService.toResponse` înlocuiește `String categoryName = null;`:
 
 ```java
 String categoryName = category == null ? null : category.getName();
 ```
 
-This means: if there is no category, use null; otherwise get its name. Keep the rest of the mapper.
+Dacă lipsește categoria folosim null; altfel luăm numele. Păstrează restul mapării.
 
-### 4.3 Hash passwords: L2-3
+### 4.3. Hash-ul parolei: L2-3
 
-File: `services/AuthService.java`. Replace `hashPassword` with:
+În `services/AuthService.java` înlocuiește `hashPassword`:
 
 ```java
 private String hashPassword(String rawPassword) {
@@ -227,11 +223,11 @@ private String hashPassword(String rawPassword) {
 }
 ```
 
-BCrypt stores a salted hash instead of the original password.
+BCrypt salvează un hash cu salt, nu parola inițială.
 
-### 4.4 Check passwords: L2-4
+### 4.4. Verificarea parolei: L2-4
 
-In the same file, replace `passwordMatches` with:
+În același fișier înlocuiește `passwordMatches`:
 
 ```java
 private boolean passwordMatches(String rawPassword, String storedHash) {
@@ -239,11 +235,11 @@ private boolean passwordMatches(String rawPassword, String storedHash) {
 }
 ```
 
-Do not encode again and compare strings: BCrypt deliberately creates different salted hashes.
+Nu calcula un hash nou pentru comparație directă: salt-ul produce intenționat hash-uri diferite.
 
-### 4.5 Create the JWT: L2-5
+### 4.5. Crearea tokenului: L2-5
 
-File: `security/JwtService.java`. Replace `generateToken` with:
+În `security/JwtService.java` înlocuiește `generateToken`:
 
 ```java
 public String generateToken(User user) {
@@ -260,11 +256,11 @@ public String generateToken(User user) {
 }
 ```
 
-The signature detects tampering. Expiry limits token lifetime. The existing `readClaims` verifies both; keep it.
+Semnătura detectează modificările; expirarea limitează durata tokenului. Păstrează `readClaims`, care le verifică. Nu pune parole în JWT.
 
-### 4.6 Authenticate the current request: L2-6
+### 4.6. Autentificarea cererii: L2-6
 
-File: `security/JwtFilter.java`. Replace `authenticate` with:
+În `security/JwtFilter.java` înlocuiește `authenticate`:
 
 ```java
 private void authenticate(User user) {
@@ -275,29 +271,35 @@ private void authenticate(User user) {
 }
 ```
 
-The last line tells Spring Security who made this request. The role comes from the stored user, not an untrusted request body.
+Ultima linie spune Spring Security cine a trimis cererea. Rolul provine din utilizatorul salvat.
+Elimină importul nefolosit `import com.impact.ecommerce.exceptions.LessonTodo;` din ProductService, AuthService și JwtService după eliminarea excepțiilor provizorii.
 
-Remove the unused `import com.impact.ecommerce.exceptions.LessonTodo;` from `ProductService.java`, `AuthService.java` and `JwtService.java` after their throws are gone.
+### 4.7. Verifică înainte să continui
 
-### 4.7 Check Lesson 2 before moving on
+Repornește și testează în Postman:
 
-Restart. In Postman:
+1. GET /api/products și GET /api/products?category=1 întorc JSON.
+2. POST /api/auth/login cu `{"email":"user@impact.md","password":"user123"}` întoarce token.
+3. GET /api/test/protected: 401 fără token, 200 cu Authorization > Bearer Token.
+4. GET /api/admin/test: 403 pentru USER; 200 cu token de la `admin@impact.md` / `admin123`.
+5. POST /api/auth/register cu `{"email":"student@example.com","password":"password123"}`: 201 și token. Emailul trebuie să fie nou; duplicatul produce 409.
 
-1. `GET /api/products` and `GET /api/products?category=1` should return product JSON.
-2. `POST /api/auth/login` with `{"email":"user@impact.md","password":"user123"}` should return a token.
-3. `GET /api/test/protected`: 401 without a token; 200 with Postman Authorization > Bearer Token.
-4. `GET /api/admin/test`: 403 with the USER token; 200 after logging in as `admin@impact.md` / `admin123`.
-5. `POST /api/auth/register` with `{"email":"student@example.com","password":"password123"}` should return 201 and a token. Use a fresh email; a duplicate returns 409.
+După repornire autentifică-te din nou: cheia JWT implicită se schimbă.
 
-The default JWT key changes on restart. Log in again if an old token stops working.
+## 5. Lecția 3: Redis și documentația API
 
-## 5. Lesson 3: cache and API documentation (20 minutes)
+### 5.1. Pornește Redis, fără Docker dacă preferi
 
-### 5.1 Turn on Redis
+Windows: `.\setup.cmd redis`. Acceptă solicitarea de administrator.
+Mac/Debian: `bash setup.sh redis`.
 
-Follow [the native/Docker Redis instructions](../database/README.md#lesson-3-redis-optional-for-earlier-lessons). Docker is not required.
+Dacă un container Redis ocupă portul și vrei Memurai, oprește-l explicit înainte:
 
-Add or change these values in your local `application-local.properties`; keep the PostgreSQL settings:
+```sh
+docker compose -f database/compose.yaml stop redis
+```
+
+Păstrează setările PostgreSQL și adaugă în fișierul local:
 
 ```properties
 spring.cache.type=redis
@@ -305,46 +307,61 @@ spring.data.redis.host=localhost
 spring.data.redis.port=6379
 ```
 
-`redis-cli ping` (or `memurai-cli ping` on Windows) must answer `PONG`. Restart the backend.
+Verificare Windows:
 
-### 5.2 Cache product reads: L3-1
+```powershell
+& "C:\Program Files\Memurai\memurai-cli.exe" ping
+```
 
-File: `services/ProductService.java`. Uncomment this annotation directly above `list`:
+Mac/Linux: `redis-cli ping`. Trebuie să primești **PONG**.
+Dacă terminalul nu găsește comanda, verifică instalarea/PATH sau folosește calea completă.
+
+Alternativ, Docker include propriul redis-cli; nu îl instala separat pe Windows:
+
+```sh
+docker compose -f database/compose.yaml --profile lesson3 up -d --wait redis
+docker compose -f database/compose.yaml exec -T redis redis-cli ping
+```
+
+Docker trebuie să fie pornit. Dacă memoria nu ajunge, folosește instalarea nativă.
+[Detalii de configurare](../database/README.md#redis-pentru-lectia-3). Repornește backend-ul după activarea Redis.
+
+### 5.2. Cache pentru produse: L3-1
+
+În `services/ProductService.java` decomentează deasupra `list`:
 
 ```java
 @Cacheable(cacheNames = "products", key = "#categoryId != null ? #categoryId : 'all'")
 ```
 
-Keep the method body. All products use key `products::all`; category 1 uses `products::1`. Separate keys prevent one category's result being returned for another.
+Păstrează metoda. Lista completă folosește products::all; categoria 1 folosește products::1. Cheile diferite împiedică amestecarea rezultatelor.
 
-### 5.3 Cache categories: L3-2
+### 5.3. Cache pentru categorii: L3-2
 
-In the same file, uncomment directly above `categories`:
+Decomentează deasupra `categories`:
 
 ```java
 @Cacheable(cacheNames = "categories", key = "'all'")
 ```
 
-The category list uses `categories::all`.
+Cheia este categories::all.
 
-### 5.4 Invalidate product caches after writes: L3-3
+### 5.4. Invalidare după scriere: L3-3
 
-Uncomment this annotation above **each** method: `create`, `update` and `delete`:
+Decomentează adnotarea pentru fiecare metodă: **create, update și delete**:
 
 ```java
 @CacheEvict(cacheNames = "products", allEntries = true)
 @Transactional
 ```
 
-`@Transactional` already exists; do not duplicate it. Keep each method body.
+@Transactional există deja; nu îl dubla. Nu modifica metodele. O schimbare poate afecta lista completă și listele categoriilor vechi/noi, deci golim toate intrările produselor.
 
-Why all entries? Changing a product can change the complete list and both its old/new category lists. Clearing one key is not enough.
+CacheConfig setează deja TTL la **60 de secunde**. TTL elimină automat copia după expirare; invalidarea o elimină imediat când știm că s-au schimbat datele. Managerul Redis invalidează după commit-ul reușit.
 
-`CacheConfig` already sets a **60-second TTL**. TTL means a cached value expires automatically. Eviction removes it sooner when we know data changed. Redis eviction is deferred until the transaction successfully commits.
+### 5.5. Butonul de golire: L3-4
 
-### 5.5 Enable the clear button: L3-4
-
-File: `services/CatalogCacheService.java`. Replace the placeholder annotation/comment and `clear` method with:
+În `services/CatalogCacheService.java` înlocuiește comentariul/adnotarea și metoda clear:
 
 ```java
 @CacheEvict(cacheNames = {"products", "categories"}, allEntries = true)
@@ -352,13 +369,13 @@ public void clear() {
 }
 ```
 
-Remove its unused `LessonTodo` import. The empty body is intentional: Spring handles the annotation. The controller calls this separate service so Spring's cache interception runs.
+Elimină importul LessonTodo. Corpul gol este intenționat: Spring execută adnotarea. Controllerul apelează un serviciu separat, astfel încât interceptarea cache să funcționeze.
 
-This clears only catalog cache entries, not products in PostgreSQL. The endpoint is public for the existing localhost classroom frontend; it is not a general-purpose Redis administration route.
+Nu se șterg produse din PostgreSQL. Ruta este publică pentru frontend-ul local al clasei, nu pentru administrarea generală Redis.
 
-### 5.6 Add Swagger JWT authorization: L3-5
+### 5.6. Autorizare JWT în Swagger: L3-5
 
-File: `config/OpenApiConfig.java`. Immediately after `Components components = new Components();`, insert:
+În `config/OpenApiConfig.java`, imediat după `Components components = new Components();`:
 
 ```java
 components.addSecuritySchemes("bearerAuth", new SecurityScheme()
@@ -367,60 +384,79 @@ components.addSecuritySchemes("bearerAuth", new SecurityScheme()
         .bearerFormat("JWT"));
 ```
 
-Keep the existing return statement. This describes how Swagger should send a token; `SecurityConfig` still decides actual access.
+Păstrează return-ul. Aceasta descrie cum trimite Swagger tokenul; SecurityConfig decide accesul real.
 
-### 5.7 Finish the product description: L3-6
+### 5.7. Descrierea produselor: L3-6
 
-File: `controllers/CatalogController.java`. Replace the placeholder `@Operation` above `GET /products` with:
+În `controllers/CatalogController.java` înlocuiește @Operation provizoriu de la GET /products:
 
 ```java
 @Operation(summary = "List products, optionally filtered by category")
 ```
 
-Keep all other annotations. Read the prepared success/error responses together with the class: 200 means success, 400 bad input, 401 not authenticated, 403 insufficient permission, 404 missing resource, 409 conflict, 501 unfinished exercise, 503 Redis unavailable.
+Păstrează descrierea exactă pentru testul de completare. Celelalte adnotări sunt pregătite.
+200 = succes; 400 = date invalide; 401 = neautentificat; 403 = permisiune insuficientă; 404 = resursă absentă; 409 = conflict; 501 = exercițiu neterminat; 503 = Redis indisponibil.
 
-### 5.8 Demonstrate Lesson 3
+### 5.8. Demonstrație cu servicii reale
 
-1. Open `http://localhost:8080/swagger-ui/index.html`.
-2. Execute login. Copy only the returned token, click **Authorize**, and paste it without the `Bearer ` prefix.
-3. Try the protected route. Log in as ADMIN to test an ADMIN route.
-4. Request `/api/products` twice, then run `redis-cli --scan --pattern 'products::*'` and `redis-cli TTL products::all`.
-5. TTL should be 1-60 seconds; `-2` means the key is absent. Read again if it expired.
-6. Request `/api/categories` and inspect `categories::all`.
-7. Send `POST /api/cache/clear`. Inspect keys before another catalog GET: they should be gone. The frontend immediately reloads products, so its clear button may already have repopulated them.
-8. As ADMIN, create/update/delete a product. Inspect keys before another GET to see invalidation.
+1. Deschide http://localhost:8080/swagger-ui/index.html.
+2. Execută login, copiază tokenul și folosește **Authorize**, fără prefixul Bearer.
+3. Testează ruta protejată și ruta ADMIN cu utilizatorul corespunzător.
+4. Cere /api/products de două ori; inspectează cheile și TTL.
+5. Cere /api/categories; verifică și categories::all.
+6. Trimite POST /api/cache/clear și verifică înainte de alt GET. Frontend-ul recitește automat și poate recrea imediat cheile.
+7. Ca ADMIN, creează/modifică/șterge un produs. Verifică invalidarea înainte de următoarea citire.
 
-Faster timing alone does not prove caching. Inspect keys/TTL and run the automated checks.
+Windows nativ:
 
-## 6. Match the solution's test settings and final checks (10 minutes)
+```powershell
+& "C:\Program Files\Memurai\memurai-cli.exe" --scan --pattern "products::*"
+& "C:\Program Files\Memurai\memurai-cli.exe" TTL products::all
+```
 
-### 6.1 Run all completion tests
+Mac/Linux:
+
+```sh
+redis-cli --scan --pattern "products::*"
+redis-cli TTL products::all
+```
+
+Prin Docker:
+
+```sh
+docker compose -f database/compose.yaml exec -T redis redis-cli --scan --pattern "products::*"
+docker compose -f database/compose.yaml exec -T redis redis-cli TTL products::all
+```
+
+TTL între 1 și 60 este normal. -2 înseamnă absent; recitește după expirare. -1 înseamnă fără expirare și necesită verificarea configurației.
+Viteza singură nu demonstrează cache-ul; verifică cheile și testele.
+
+## 6. Aceleași verificări ca pe solution
+
+### 6.1. Rulează toate testele de completare
 
 Windows: `.\setup.cmd check`. Mac/Debian: `bash setup.sh check`.
+Comanda folosește `mvn -Plesson-check test`. H2 și cache-ul în memorie izolează testele; verifică separat PostgreSQL și Redis reale.
 
-This runs `mvn -Plesson-check test`. It does not require live PostgreSQL/Redis: tests use H2 and an in-memory cache. Use the real-service checks above too.
+### 6.2. Include răspunsurile și în compilările obișnuite
 
-### 6.2 Make ordinary builds check completed work too
-
-In the **top-level** `<properties>` section of `pom.xml`, replace:
+În secțiunea principală `<properties>` din pom.xml înlocuiește:
 
 ```xml
 <excludedGroups>lesson-complete</excludedGroups>
 ```
 
-with:
+cu:
 
 ```xml
 <excludedGroups>lesson-starter</excludedGroups>
 ```
 
-This matches `solution`: ordinary builds now include the completed exercises' tests. Do this after filling the answers, otherwise setup's build will correctly fail.
+Fă schimbarea după completarea exercițiilor; altfel instalarea va eșua corect la teste. Aceasta este configurația solution.
 
-### 6.3 Add the solution's two extra Lesson 1 tests
+### 6.3. Adaugă cele două teste suplimentare din lecția 1
 
-File: `src/test/java/com/impact/ecommerce/Lesson1BackendApplicationTests.java`.
-
-Paste the following methods **inside the existing class, before its final closing brace**. Keep the existing three tests. Required types are already imported or fully qualified below.
+În `src/test/java/com/impact/ecommerce/Lesson1BackendApplicationTests.java`, înainte de ultima acoladă a clasei, adaugă metodele de mai jos. Păstrează cele trei teste existente. Importurile necesare există sau tipurile sunt scrise complet.
 
 ```java
     @Test
@@ -449,22 +485,23 @@ Paste the following methods **inside the existing class, before its final closin
     }
 ```
 
-With these methods and every answer completed, the current project has **21 passing application tests**.
+Cu aceste metode și toate răspunsurile completate, versiunea curentă are **21 de teste de aplicație reușite**.
 
-### 6.4 Confirm you reached the reference behavior
+### 6.4. Verificarea finală
 
-- [ ] Lesson 1: exact text for all five methods, and browser preflights work.
-- [ ] Lesson 2: products come from PostgreSQL; passwords are hashed; USER cannot use ADMIN routes.
-- [ ] Lesson 3: Redis keys/TTL work, writes evict caches, clear works, Swagger has Authorize.
-- [ ] All completion tests pass.
-- [ ] No unfinished `LessonTodo.required(...)` calls remain in the implemented service methods.
-- [ ] No local credentials or frontend changes are staged.
+- [ ] Textele lecției 1 sunt exacte și preflight-urile funcționează.
+- [ ] Produsele vin din PostgreSQL; parolele sunt hash-uri; USER nu poate folosi rutele ADMIN.
+- [ ] Redis are chei și TTL; toate scrierile invalidează; golirea funcționează.
+- [ ] Swagger are Authorize și rutele documentate.
+- [ ] Toate testele trec.
+- [ ] Metodele completate nu mai aruncă LessonTodo.required(...).
+- [ ] Nu ai pregătit pentru commit parole sau modificări din frontend.
 
-The snippets produce the same executable answers and test configuration as `solution`. Comments saying TODO versus Answer and README wording do not affect behavior. To match the reference presentation, change completed TODO comments to explanations and state in README that your answers are completed. Keep the `LessonTodo` helper for future lessons.
+Codul de mai sus reproduce comportamentul și testele solution. Comentariile TODO/Answer și formularea README nu schimbă funcționarea. Pentru prezentare identică, înlocuiește comentariile completate cu explicații și spune în README că răspunsurile sunt gata. Păstrează helperul LessonTodo pentru lecțiile viitoare.
 
-## 7. Save your work
+## 7. Salvează în repository-ul tău
 
-On your own feature branch:
+Pe ramura de lucru:
 
 ```sh
 git add .
@@ -473,18 +510,18 @@ git commit -m "feat: complete lessons 1 to 3"
 git push -u origin HEAD
 ```
 
-Open a PR to your own `main`, review the complete diff, and merge when checks pass. Don't push to the teacher's repository or the frontend repository.
+Deschide un PR către propriul main, citește întregul diff și integrează după verificări. Nu trimite modificări în repository-ul profesorului sau al frontend-ului.
 
-## Quick troubleshooting
+## Probleme frecvente
 
-| What you see | What to check |
+| Simptom | Verificare |
 | --- | --- |
-| 501 response | A placeholder throw remains in a required method. |
-| 401 after login | Check L2-6, token expiry, and whether you restarted since obtaining the token. |
-| 403 for a USER on an ADMIN route | Correct behavior. Use the ADMIN account for ADMIN work. |
-| Swagger has no Authorize button | Complete L3-5 and restart. |
-| No Redis keys | Enable Redis locally, restart, complete caching annotations and make a catalog request. |
-| Keys reappear after clearing | Another read repopulated the cache; the frontend reloads after clearing. |
-| 503 during catalog/cache requests | Redis is enabled but unavailable. Start it or disable caching for earlier lessons. |
-| PostgreSQL connection/password error | Start PostgreSQL and fix local connection settings. |
-| Starter build passes but check fails | The starter excludes exercise tests; `check` includes them. |
+| 501 | A rămas o excepție TODO în metoda necesară. |
+| 401 după login | Verifică L2-6, expirarea și dacă ai repornit după obținerea tokenului. |
+| USER primește 403 pe ADMIN | Corect; folosește contul ADMIN pentru acele rute. |
+| Swagger fără Authorize | Completează L3-5 și repornește. |
+| Nu apar chei Redis | Activează Redis local, repornește, completează adnotările și fă o citire. |
+| Cheile reapar după golire | O citire le-a recreat; frontend-ul recitește imediat. |
+| 503 | Redis este activat, dar inaccesibil. Pornește-l sau dezactivează caching-ul pentru lecțiile anterioare. |
+| Eroare PostgreSQL | Verifică serviciul, baza și parola din fișierul local. |
+| Build trece, check eșuează | Main exclude testele exercițiilor la build; check le include. |
