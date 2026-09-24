@@ -23,15 +23,18 @@ Run commands from the project folder:
 
 Keep PostgreSQL running. After **Started**, open **http://localhost:8080/**. **Ctrl+C** stops the backend; restart after editing.
 
-Follow your teacher's current lesson checklist: [Lesson 1](LESSON1_CHECKLIST.md), [Lesson 2](LESSON2_CHECKLIST.md). More lessons will be added here. Completion checks fail until the included exercises are done.
+Follow your teacher's current lesson checklist: [Lesson 1](LESSON1_CHECKLIST.md), [Lesson 2](LESSON2_CHECKLIST.md), [Lesson 3](LESSON3_CHECKLIST.md). More lessons will be added here. Completion checks fail until the included exercises are done.
 
 ## 4. Save to your GitHub
 
 ```sh
+git switch -c feature/my-lesson
 git add .
 git commit -m "Complete lesson exercises"
-git push origin main
+git push -u origin HEAD
 ```
+
+Open a pull request to your own main and review the diff. Lesson 3 adds optional Redis and Swagger: follow its checklist.
 
 Setup keeps your repository's origin and does not commit or push for you.
 

@@ -68,3 +68,35 @@ SELECT email, role, password_hash FROM users;
 **Connection refused:** start PostgreSQL. **Password failed:** fix `application-local.properties`. **Missing table:** restart the updated backend; it now creates missing tables before validation. **Schema mismatch:** existing columns are not automatically changed; apply the teacher's schema changes for that lesson.
 
 The sample accounts and Docker password are for local classroom practice only. Re-running the SQL keeps existing records. Do not delete an existing database to fix an error.
+
+## Lesson 3: Redis (optional for earlier lessons)
+
+Choose one installation:
+
+- **Windows:** install [Memurai](https://docs.memurai.com/) as a local service on port **6379**. Use `memurai-cli` for the commands below. If it is not on PATH, run `& 'C:\Program Files\Memurai\memurai-cli.exe' ping` in PowerShell.
+- **Mac:** `brew install redis`, then `brew services start redis`. [Homebrew instructions](https://redis.io/docs/latest/operate/oss_and_stack/install/install-stack/homebrew/).
+- **Debian:** `sudo apt update`, `sudo apt install redis-server redis-tools`, then `sudo systemctl start redis-server`.
+- **Optional Docker:** `docker compose -f database/compose.yaml --profile lesson3 up -d --wait redis`. This starts only Redis; you can keep native PostgreSQL.
+
+Check: `redis-cli ping` should return **PONG**. Keep Redis local; no firewall opening is needed for this lesson.
+
+Add this to your ignored **application-local.properties** (keep your PostgreSQL settings):
+
+```properties
+spring.cache.type=redis
+spring.data.redis.host=localhost
+spring.data.redis.port=6379
+```
+
+Restart the backend. Set `spring.cache.type=none` to return to earlier lessons without Redis. Swagger works in either mode.
+
+After completing the Lesson 3 TODOs and reading `/api/products`:
+
+```sh
+redis-cli --scan --pattern 'products::*'
+redis-cli TTL products::all
+```
+
+For Docker, prefix Redis commands with `docker compose -f database/compose.yaml exec redis`, for example `docker compose -f database/compose.yaml exec redis redis-cli TTL products::all`.
+
+TTL should be between 1 and 60; `-2` means absent, `-1` means no expiry. Call `/api/products` again after expiration. Clear with `POST /api/cache/clear`; don't run FLUSHALL. A 503 means Redis is enabled but unreachable; check the service, port and any Redis password. A 501 means the cache-clear TODO is unfinished.
