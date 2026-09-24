@@ -22,12 +22,10 @@ See the [official Debian instructions](https://www.postgresql.org/download/linux
 
 ### Create the database
 
-From the **project folder**, run these commands and enter your PostgreSQL password:
+From the **project folder**, run this command and enter your PostgreSQL password:
 
 ```sh
 psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f database/create_database.sql
-psql -h localhost -U postgres -d e-commerce -v ON_ERROR_STOP=1 -f database/create_tables.sql
-psql -h localhost -U postgres -d e-commerce -v ON_ERROR_STOP=1 -f database/insert_data.sql
 ```
 
 Windows says `psql` is missing? In PowerShell, first add your installed version's bin folder (example for version 16):
@@ -40,7 +38,7 @@ On macOS with the EDB version 16 installer: `export PATH="/Library/PostgreSQL/16
 
 Copy `database/application-local.properties.example` into the project root as **application-local.properties**. Set your database username and password there. This file is ignored by Git.
 
-**pgAdmin alternative:** create a database named `e-commerce`; open its Query Tool and execute `create_tables.sql`, then `insert_data.sql`. Do not paste the psql-only `create_database.sql` into Query Tool.
+**pgAdmin alternative:** create a database named `e-commerce`. The backend creates its tables and sample data on startup; no manual table scripts are needed. Do not paste the psql-only `create_database.sql` into Query Tool.
 
 ## Optional: Docker
 
@@ -52,7 +50,7 @@ If Docker is already installed and running:
 This starts PostgreSQL on **localhost:5432** and loads the tables/sample data on first use. The app's defaults already match it. No local properties file is needed.
 
 If port 5432 is occupied, use native PostgreSQL above. If Docker reports insufficient memory, use native PostgreSQL too.
-To stop: `docker compose -f database/compose.yaml stop`. Data is kept. Seed scripts run automatically only for a new Docker database.
+To stop: `docker compose -f database/compose.yaml stop`. Data is kept. Docker initializes a new database; the backend also runs the repeatable SQL on every startup, including with an existing Docker volume.
 
 ## Start and check
 
@@ -67,6 +65,6 @@ SELECT name, price, stock FROM products;
 SELECT email, role, password_hash FROM users;
 ```
 
-**Connection refused:** start PostgreSQL. **Password failed:** fix `application-local.properties`. **Missing table/schema mismatch:** check that you loaded the SQL into `e-commerce`; existing older tables are not automatically overwritten.
+**Connection refused:** start PostgreSQL. **Password failed:** fix `application-local.properties`. **Missing table:** restart the updated backend; it now creates missing tables before validation. **Schema mismatch:** existing columns are not automatically changed; apply the teacher's schema changes for that lesson.
 
 The sample accounts and Docker password are for local classroom practice only. Re-running the SQL keeps existing records. Do not delete an existing database to fix an error.

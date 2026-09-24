@@ -10,7 +10,7 @@ On GitHub, click **Use this template > Create a new repository**. Clone **your n
 | --- | --- | --- |
 | Install Java, Maven and Git | Double-click `setup.cmd` | `bash setup.sh` |
 
-Set up [PostgreSQL](database/README.md): create the database, run the SQL files, and save your password in `application-local.properties`. Docker is optional.
+Set up [PostgreSQL](database/README.md): create the database and save your password in `application-local.properties`. Tables and sample data are prepared automatically when the backend starts. Docker is optional.
 
 ## 3. Start and complete the lesson
 
@@ -19,11 +19,11 @@ Run commands from the project folder:
 | | Windows PowerShell | Mac / Debian |
 | --- | --- | --- |
 | Start backend | `.\setup.cmd run` | `bash setup.sh run` |
-| Check Lesson 2 answers | `.\setup.cmd check` | `bash setup.sh check` |
+| Check all lesson answers | `.\setup.cmd check` | `bash setup.sh check` |
 
 Keep PostgreSQL running. After **Started**, open **http://localhost:8080/**. **Ctrl+C** stops the backend; restart after editing.
 
-**Lesson 1 and Lesson 2 answers are completed on this branch.** All lesson checks should pass. Student exercises are on [main](https://github.com/krovskiy/impact_backend2_starter/tree/main).
+**Answers for the included lessons are completed here.** All lesson checks should pass. Student exercises are on [main](https://github.com/krovskiy/impact_backend2_starter/tree/main); more lessons will be added over time.
 
 ## 4. Save to your GitHub
 
