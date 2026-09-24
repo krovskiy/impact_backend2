@@ -68,20 +68,16 @@ class SetupTests:
                 "$ErrorActionPreference = 'Stop'; "
                 f". {quote_ps(helper)}; "
             )
-            if action == "url":
-                command += f"ConvertTo-GitHubUrl {quote_ps(value)}"
-            elif action == "sync":
+            if action == "sync":
                 command += f"Sync-Origin {quote_ps(value)}"
             elif action == "frontend":
                 command += f"Sync-Frontend (Get-Location).Path {quote_ps(value)}"
-            elif action == "publish":
-                command += f"Publish-Project {quote_ps(value)} 'Student' 'student@example.invalid'"
             else:
-                command += f"Test-GitTarget {quote_ps(value)}"
+                raise ValueError(action)
             argv = [PS, "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command]
         else:
-            function = {"url": "normalize_github_url", "publish": "publish_project", "check": "check_git_target", "sync": "sync_origin", "frontend": "sync_frontend"}[action]
-            arguments = ' "$PWD" "$2"' if action == "frontend" else ' "$2" Student student@example.invalid'
+            function = {"sync": "sync_origin", "frontend": "sync_frontend"}[action]
+            arguments = ' "$PWD" "$2"' if action == "frontend" else ' "$2"'
             command = 'set -euo pipefail; source "$1"; ' + function + arguments
             argv = [BASH, "-c", command, "test", (PROJECT / "scripts/setup-common.sh").as_posix(), value]
         result = subprocess.run(
@@ -193,109 +189,6 @@ class SetupTests:
         self.initial_commit()
         self.git("push", remote, "main")
         self.helper("frontend", remote, expect_ok=False)
-
-
-    def test_urls(self):
-        valid = {
-            " https://github.com/student/my-project ": "https://github.com/student/my-project.git",
-            "https://github.com/student/my-project.git/": "https://github.com/student/my-project.git",
-            "git@github.com:student/my-project.git": "https://github.com/student/my-project.git",
-            "https://github.com/a/repo.name": "https://github.com/a/repo.name.git",
-        }
-        for value, expected in valid.items():
-            with self.subTest(url=value):
-                self.assertEqual(self.helper("url", value), expected)
-        for value in [
-            "", "https://github.com/student", "http://github.com/student/repo",
-            "https://github.com.evil.test/student/repo",
-            "https://github.com/student/repo/tree/main",
-            "https://github.com/student/repo?token=secret",
-            "https://token@github.com/student/repo",
-            "https://github.com/-student/repo",
-            "https://github.com/student/..",
-            "https://github.com/student/repo;echo",
-            "https://github.com/student/repo#readme",
-        ]:
-            with self.subTest(url=value):
-                self.helper("url", value, expect_ok=False)
-
-    def test_replace_teacher_origin_push_and_rerun(self):
-        teacher = self.bare("teacher.git")
-        student = self.bare()
-        self.initial_commit()
-        self.git("remote", "add", "origin", teacher)
-        self.git("push", "origin", "main")
-        teacher_head = self.git("--git-dir", teacher, "rev-parse", "main")
-        (self.work / "lesson.txt").write_text("student work\n")
-        self.helper("publish", student)
-        self.assertEqual(self.git("remote"), "origin")
-        self.assertEqual(self.git("remote", "get-url", "origin"), student)
-        self.assertEqual(self.git("--git-dir", student, "rev-parse", "main"), self.git("rev-parse", "HEAD"))
-        self.assertEqual(self.git("--git-dir", teacher, "rev-parse", "main"), teacher_head)
-        first = self.git("rev-parse", "HEAD")
-        self.helper("publish", student)
-        self.assertEqual(self.git("rev-parse", "HEAD"), first)
-        self.assertEqual(self.git("rev-parse", "--abbrev-ref", "@{upstream}"), "origin/main")
-
-    def test_zip_download_initializes_and_pushes(self):
-        destination = self.bare()
-        (self.work / "lesson.txt").write_text("ZIP download\n")
-        self.helper("publish", destination)
-        self.assertEqual(self.git("branch", "--show-current"), "main")
-        self.assertEqual(self.git("--git-dir", destination, "rev-parse", "main"), self.git("rev-parse", "HEAD"))
-
-    def test_unrelated_remote_does_not_change_origin_or_commit(self):
-        destination = self.bare()
-        other = self.base / "other"
-        other.mkdir()
-        self.git("init", "-b", "main", cwd=other)
-        (other / "README.md").write_text("unrelated README\n")
-        self.git("add", ".", cwd=other)
-        self.git("commit", "-m", "different history", cwd=other)
-        self.git("push", destination, "main", cwd=other)
-        before = self.initial_commit()
-        self.git("remote", "add", "origin", "https://github.com/teacher/class.git")
-        (self.work / "lesson.txt").write_text("uncommitted work\n")
-        self.helper("publish", destination, expect_ok=False)
-        self.assertEqual(self.git("rev-parse", "HEAD"), before)
-        self.assertEqual(self.git("remote", "get-url", "origin"), "https://github.com/teacher/class.git")
-        self.assertEqual((self.work / "lesson.txt").read_text(), "uncommitted work\n")
-
-    def test_detached_head_rejected(self):
-        destination = self.bare()
-        before = self.initial_commit()
-        self.git("checkout", "--detach", before)
-        self.helper("check", destination, expect_ok=False)
-
-    def test_different_existing_main_rejected(self):
-        destination = self.bare()
-        self.initial_commit()
-        self.git("checkout", "-b", "lesson")
-        self.helper("check", destination, expect_ok=False)
-        self.assertEqual(self.git("branch", "--show-current"), "lesson")
-
-    def test_single_master_branch_renamed(self):
-        destination = self.bare()
-        self.initial_commit("master")
-        self.helper("publish", destination)
-        self.assertEqual(self.git("branch", "--show-current"), "main")
-
-    def test_nested_project_rejected(self):
-        destination = self.bare()
-        self.initial_commit()
-        nested = self.work / "nested"
-        nested.mkdir()
-        self.helper("check", destination, expect_ok=False, cwd=nested)
-
-    def test_missing_remote_rejected(self):
-        self.initial_commit()
-        self.helper("check", (self.base / "missing.git").as_posix(), expect_ok=False)
-
-    def test_remote_with_only_another_branch_rejected(self):
-        destination = self.bare()
-        self.initial_commit()
-        self.git("push", destination, "main:lesson")
-        self.helper("check", destination, expect_ok=False)
 
 
 class PowerShellTests(SetupTests, unittest.TestCase):

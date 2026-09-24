@@ -46,91 +46,6 @@ sync_frontend() {
 }
 
 
-normalize_github_url() {
-    local value owner repo
-    value=$(printf '%s' "$1" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-    if [[ "$value" =~ ^https://github\.com/([^/]+)/([^/?#]+)/?$ ]] ||
-       [[ "$value" =~ ^git@github\.com:([^/]+)/([^/?#]+)/?$ ]]; then
-        owner=${BASH_REMATCH[1]}
-        repo=${BASH_REMATCH[2]}
-        repo=${repo%.git}
-        if [[ "$owner" =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,37}[A-Za-z0-9])?$ ]] &&
-           [[ "$repo" =~ ^[A-Za-z0-9_.-]{1,100}$ ]] && [[ "$repo" != . && "$repo" != .. ]]; then
-            printf 'https://github.com/%s/%s.git\n' "$owner" "$repo"
-            return 0
-        fi
-    fi
-    return 1
-}
-
-read_github_url() {
-    local answer
-    while true; do
-        printf 'Paste your GitHub repository link (or Q to quit): ' >&2
-        IFS= read -r answer || fail 'No input received. Run setup in an interactive Terminal.'
-        [[ "$answer" != q && "$answer" != Q ]] || fail 'Setup cancelled.'
-        if TARGET_URL=$(normalize_github_url "$answer"); then return; fi
-        printf '%s\n' 'Use https://github.com/YOUR-NAME/YOUR-REPO (no /tree/main, tokens, spaces, or other websites).' >&2
-    done
-}
-
-check_git_target() {
-    local url="$1" root branch state state_path refs remote_commit has_repo=0
-    if root=$(git rev-parse --show-toplevel 2>/dev/null); then
-        has_repo=1
-        [[ "$(cd "$root" && pwd -P)" == "$(pwd -P)" ]] ||
-            fail 'This folder is inside another Git repository. Move the extracted project to its own folder.'
-        branch=$(git symbolic-ref --quiet --short HEAD) || fail 'Detached HEAD: switch to your project branch first.'
-        for state in MERGE_HEAD CHERRY_PICK_HEAD REVERT_HEAD rebase-merge rebase-apply BISECT_LOG; do
-            state_path=$(git rev-parse --git-path "$state")
-            [[ ! -e "$state_path" ]] || fail 'Finish or abort the in-progress Git operation before setup.'
-        done
-        if git show-ref --verify --quiet refs/heads/main && [[ "$branch" != main ]]; then
-            fail 'A different main branch already exists. Switch to main with your changes, then rerun setup.'
-        fi
-    fi
-    refs=$(git ls-remote --heads --tags -- "$url") || fail 'Cannot read the repository. Check your internet connection and GitHub sign-in.'
-    if [[ -n "$refs" ]]; then
-        printf '%s\n' "$refs" | grep -q '[[:space:]]refs/heads/main$' ||
-            fail 'Destination already has history but no main branch. Use a new empty repository, or prepare main yourself.'
-        [[ "$has_repo" == 1 ]] || fail 'This ZIP has no Git history. Choose an EMPTY repository (no README, license, or .gitignore).'
-        git rev-parse --verify --quiet HEAD >/dev/null || fail 'Choose an empty repository for this uncommitted project.'
-        remote_commit=$(printf '%s\n' "$refs" | awk '$2 == "refs/heads/main" {print $1}')
-        git cat-file -e "$remote_commit^{commit}" 2>/dev/null ||
-            fail 'Remote main has commits missing locally. Reconcile the history yourself before rerunning setup.'
-        git merge-base --is-ancestor "$remote_commit" HEAD ||
-            fail 'Remote main has commits missing locally or unrelated history. Use an empty repository, or reconcile the history first. Nothing was overwritten.'
-    fi
-    if [[ "$has_repo" == 1 ]] && git rev-parse --verify --quiet HEAD >/dev/null; then
-        git -c push.followTags=false push --dry-run "$url" HEAD:refs/heads/main
-    fi
-    printf 'Verified repository: %s\n' "$url"
-}
-
-publish_project() {
-    local url="$1" author_name="$2" author_email="$3" branch diff_result
-    check_git_target "$url"
-    [[ -e .git ]] || git init -b main
-    branch=$(git symbolic-ref --quiet --short HEAD)
-    [[ "$branch" == main ]] || git branch -m main
-    if [[ -z "$(git config --get user.name || true)" ]]; then git config --local user.name "$author_name"; fi
-    if [[ -z "$(git config --get user.email || true)" ]]; then git config --local user.email "$author_email"; fi
-    # Replace the teacher's origin; do not keep it as another remote.
-    if git remote | grep -qx origin; then git remote remove origin; fi
-    git remote add origin "$url"
-    [[ "$(git remote get-url --push --all origin)" == "$url" ]] ||
-        fail 'Git configuration rewrites the destination URL. Correct your Git URL settings first.'
-    git add --all -- .
-    diff_result=0
-    git diff --cached --quiet || diff_result=$?
-    if [[ "$diff_result" == 1 ]]; then
-        git commit -m 'chore: set up Java 21 project'
-    elif [[ "$diff_result" != 0 ]]; then
-        fail 'Could not inspect staged changes.'
-    fi
-    git -c push.followTags=false push --set-upstream origin main:refs/heads/main
-}
-
 download() {
     curl --fail --location --show-error --silent --retry 3 --connect-timeout 30 --max-time 600 \
         --proto '=https' --proto-redir '=https' "$1" --output "$2"
@@ -247,25 +162,18 @@ install_platform_tools() {
 }
 
 setup_main() {
-    local platform="$1" owner
+    local platform="$1"
     [[ $EUID -ne 0 ]] || fail 'Run this script as your normal user, without sudo. It asks for your password only for system installs.'
-    printf '%s\n' 'SETUP: Java 21, Maven, Git, build, commit and push to main.'
-    printf '%s\n' 'First create your own EMPTY repository at https://github.com/new (no README, license or .gitignore).'
-    printf '%s\n' 'Setup will publish this folder and its existing Git history to the link you enter.'
-    read_github_url
+    printf '%s\n' 'SETUP: Java 21, Maven, Git and build.'
     DOWNLOAD_DIR=$(mktemp -d "${TMPDIR:-/tmp}/impact-setup.XXXXXXXX")
     trap '[[ -z "${DOWNLOAD_DIR:-}" ]] || rm -rf -- "$DOWNLOAD_DIR"' EXIT
     install_platform_tools "$platform"
     sync_frontend "$PWD"
-    check_git_target "$TARGET_URL"
     install_toolchains "$platform"
     "$JAVA_HOME/bin/java" "$PWD/scripts/CheckPom.java" "$PWD/pom.xml"
     printf '%s\n' 'Building and running tests. The first run downloads dependencies...'
     "$MAVEN_HOME/bin/mvn" --batch-mode --no-transfer-progress clean verify
-    owner=${TARGET_URL#https://github.com/}
-    owner=${owner%%/*}
-    publish_project "$TARGET_URL" "$owner" "$owner@users.noreply.github.com"
-    printf '\nSUCCESS: uploaded to %s on main.\nNext: prepare PostgreSQL (bash setup.sh db or database/README.md), then bash setup.sh run\nThen open http://localhost:8080/\n' "$TARGET_URL"
+    printf '\nSUCCESS: setup complete.\nNext: prepare PostgreSQL (bash setup.sh db or database/README.md), then bash setup.sh run\nThen open http://localhost:8080/\n'
 }
 
 database_main() {

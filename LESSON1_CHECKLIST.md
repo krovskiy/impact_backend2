@@ -9,7 +9,7 @@ The project is intentionally **almost finished**. Complete these items yourself:
 - [ ] Test POST / PUT / PATCH / DELETE with a JSON body in Postman.
 - [ ] Run the launcher to fetch the lesson frontend, open http://localhost:8080/, and point its API console to `http://localhost:8080/api/practice`.
 - [ ] Make sure all 5 frontend cards become green (5 / 5).
-- [ ] Create your own empty GitHub repository and run the setup script to set `origin`, test, commit and push to `main`.
+- [ ] Create your repository with **Use this template**, clone it, and commit/push your work using your IDE.
 
 ## Exact required responses
 
