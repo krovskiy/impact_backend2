@@ -212,6 +212,7 @@ setup_main() {
     install_platform_tools "$platform"
     check_git_target "$TARGET_URL"
     install_toolchains "$platform"
+    "$JAVA_HOME/bin/java" "$PWD/scripts/CheckPom.java" "$PWD/pom.xml"
     printf '%s\n' 'Building and running tests. The first run downloads dependencies...'
     "$MAVEN_HOME/bin/mvn" --batch-mode --no-transfer-progress clean verify
     owner=${TARGET_URL#https://github.com/}
@@ -230,5 +231,6 @@ start_main() {
     source "$environment"
     [[ -x "$JAVA_HOME/bin/javac" && -x "$MAVEN_HOME/bin/mvn" ]] || fail 'Java/Maven setup is incomplete. Rerun bash setup.sh.'
     printf 'Once Spring reports Started, open http://localhost:%s/api/practice\nKeep this window open. Press Ctrl+C to stop.\nIf the port is busy, try: bash setup.sh run 8081\n' "$port"
+    "$JAVA_HOME/bin/java" "$PWD/scripts/CheckPom.java" "$PWD/pom.xml"
     exec "$MAVEN_HOME/bin/mvn" -f "$PWD/pom.xml" spring-boot:run "-Dspring-boot.run.arguments=--server.port=$port"
 }

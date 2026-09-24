@@ -14,3 +14,5 @@ Thumbs.db
 *.jks
 *.log
 __pycache__/
+
+pom.xml.before-setup-fix.bak

@@ -222,6 +222,7 @@ if ($Run) {
     try {
         Enable-Toolchain
         $project = Split-Path -Parent $PSScriptRoot
+        Invoke-Checked "$env:JAVA_HOME\bin\java.exe" @("$PSScriptRoot\CheckPom.java", "$project\pom.xml")
         Write-Host "Once Spring reports Started, open http://localhost:$Port/api/practice"
         Write-Host 'Keep this window open. Press Ctrl+C to stop.'
         Invoke-Checked "$env:MAVEN_HOME\bin\mvn.cmd" @('-f', "$project\pom.xml", 'spring-boot:run', "-Dspring-boot.run.arguments=--server.port=$Port")
@@ -248,6 +249,7 @@ try {
     $script:DownloadDir = Join-Path ([IO.Path]::GetTempPath()) ("impact-setup-" + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $script:DownloadDir | Out-Null
     Install-Toolchains
+    Invoke-Checked "$env:JAVA_HOME\bin\java.exe" @("$PSScriptRoot\CheckPom.java", (Join-Path (Get-Location) "pom.xml"))
     Write-Host 'Building the project and running its tests. The first run downloads dependencies...'
     Invoke-Checked "$env:MAVEN_HOME\bin\mvn.cmd" @('--batch-mode', '--no-transfer-progress', 'clean', 'verify')
     $owner = ($url.Substring('https://github.com/'.Length) -split '/')[0]

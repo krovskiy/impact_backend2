@@ -200,5 +200,116 @@ class BashTests(SetupTests, unittest.TestCase):
     engine = "bash" if BASH else None
 
 
+class PomTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="impact pom tests ")
+        self.addCleanup(self.temp.cleanup)
+        self.pom = Path(self.temp.name) / "pom.xml"
+        self.backup = self.pom.with_name("pom.xml.before-setup-fix.bak")
+        java_home = os.environ.get("JAVA_HOME")
+        self.java = str(Path(java_home) / "bin" / ("java.exe" if os.name == "nt" else "java")) if java_home else shutil.which("java")
+        if not self.java:
+            self.skipTest("Java JDK is required for POM checks")
+        self.original = (PROJECT / "pom.xml").read_bytes()
+        self.dependency = (
+            '<!-- JPA / Hibernate -->\n<dependency>'
+            '<groupId>org.springframework.boot</groupId>'
+            '<artifactId>spring-boot-starter-data-jpa</artifactId>'
+            '</dependency>\n'
+            '<dependency><groupId>io.jsonwebtoken</groupId>'
+            '<artifactId>jjwt-jackson</artifactId><version>0.12.6</version>'
+            '<scope>runtime</scope></dependency>'
+        ).encode()
+
+    def check_pom(self, ok=True):
+        result = subprocess.run(
+            [self.java, str(PROJECT / "scripts/CheckPom.java"), str(self.pom)],
+            text=True, capture_output=True,
+        )
+        if ok:
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        else:
+            self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("POM CHECK STOPPED", result.stderr)
+        return result
+
+    def test_valid_pom_unchanged(self):
+        content = self.original + b"\n<!-- Keep this comment: </project> -->\n"
+        self.pom.write_bytes(content)
+        self.check_pom()
+        self.assertEqual(self.pom.read_bytes(), content)
+        self.assertFalse(self.backup.exists())
+
+    def test_screenshot_repair_preserves_dependencies_and_backup(self):
+        import xml.etree.ElementTree as ET
+        broken = self.original + b"\n" + self.dependency
+        self.pom.write_bytes(broken)
+        self.check_pom()
+        self.assertEqual(self.backup.read_bytes(), broken)
+        root = ET.parse(self.pom).getroot()
+        ns = {"m": "http://maven.apache.org/POM/4.0.0"}
+        dependencies = root.findall("m:dependencies/m:dependency", ns)
+        self.assertEqual(len(dependencies), 4)
+        self.assertEqual(dependencies[-1].find("m:scope", ns).text, "runtime")
+        self.assertEqual(dependencies[-1].find("m:version", ns).text, "0.12.6")
+        self.assertIsNotNone(root.find("m:build/m:plugins", ns))
+        self.assertIn(b"JPA / Hibernate", self.pom.read_bytes())
+        repaired = self.pom.read_bytes()
+        self.check_pom()
+        self.assertEqual(self.pom.read_bytes(), repaired)
+        self.assertEqual(self.backup.read_bytes(), broken)
+
+    def test_dependency_wrapper_without_existing_section(self):
+        import xml.etree.ElementTree as ET
+        self.pom.write_bytes(b"<project><modelVersion>4.0.0</modelVersion></project>\n"
+                             b"<dependencies>" + self.dependency + b"</dependencies>")
+        self.check_pom()
+        self.assertEqual(len(ET.parse(self.pom).getroot().findall("dependencies/dependency")), 2)
+
+    def test_incomplete_snippet_not_modified(self):
+        broken = self.original + b"\n<dependency><groupId>demo"
+        self.pom.write_bytes(broken)
+        self.check_pom(ok=False)
+        self.assertEqual(self.pom.read_bytes(), broken)
+        self.assertFalse(self.backup.exists())
+
+    def test_duplicate_dependency_not_modified(self):
+        broken = self.original + (
+            b"<dependency><groupId>org.springframework.boot</groupId>"
+            b"<artifactId>spring-boot-starter-web</artifactId></dependency>"
+        )
+        self.pom.write_bytes(broken)
+        self.check_pom(ok=False)
+        self.assertEqual(self.pom.read_bytes(), broken)
+        self.assertFalse(self.backup.exists())
+
+    def test_arbitrary_trailing_xml_not_modified(self):
+        broken = self.original + b"<build><plugins/></build>"
+        self.pom.write_bytes(broken)
+        self.check_pom(ok=False)
+        self.assertEqual(self.pom.read_bytes(), broken)
+        self.assertFalse(self.backup.exists())
+
+    def test_existing_backup_not_overwritten(self):
+        broken = self.original + self.dependency
+        self.pom.write_bytes(broken)
+        self.backup.write_bytes(b"previous backup")
+        self.check_pom(ok=False)
+        self.assertEqual(self.pom.read_bytes(), broken)
+        self.assertEqual(self.backup.read_bytes(), b"previous backup")
+
+    def test_broken_project_not_modified(self):
+        broken = b"<project><build></project>" + self.dependency
+        self.pom.write_bytes(broken)
+        self.check_pom(ok=False)
+        self.assertEqual(self.pom.read_bytes(), broken)
+
+    def test_external_entities_rejected(self):
+        broken = b'<!DOCTYPE project [<!ENTITY x SYSTEM "file:///nonexistent">]><project>&x;</project>'
+        self.pom.write_bytes(broken)
+        self.check_pom(ok=False)
+        self.assertEqual(self.pom.read_bytes(), broken)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
