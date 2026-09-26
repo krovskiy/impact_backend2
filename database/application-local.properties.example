@@ -1,2 +1,0 @@
-# Historical application-local.properties is no longer imported.
-# Optional Redis: mvn spring-boot:run "-Dspring-boot.run.arguments=--spring.cache.type=redis"

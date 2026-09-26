@@ -2,50 +2,6 @@
 # Sourced by both platform entry points; compatible with macOS Bash 3.2.
 fail() { printf '\nSETUP STOPPED: %s\n' "$*" >&2; exit 1; }
 
-sync_origin() {
-    local directory="$1" branch state state_path remote_branch
-    if [[ ! -e "$directory/.git" ]]; then
-        printf '%s\n' 'No Git history in this folder yet; skipping its origin update.'
-        return
-    fi
-    if ! git -C "$directory" remote | grep -qx origin; then
-        printf '%s\n' 'No origin configured yet; skipping its update.'
-        return
-    fi
-    branch=$(git -C "$directory" symbolic-ref --quiet --short HEAD) ||
-        fail "Detached HEAD in $directory. Switch to a branch before updating."
-    for state in MERGE_HEAD CHERRY_PICK_HEAD REVERT_HEAD rebase-merge rebase-apply BISECT_LOG; do
-        state_path=$(git -C "$directory" rev-parse --git-path "$state")
-        [[ "$state_path" == /* || "$state_path" == [A-Za-z]:/* ]] || state_path="$directory/$state_path"
-        [[ ! -e "$state_path" ]] || fail "Finish or abort the Git operation in $directory before updating."
-    done
-    printf 'Updating %s from origin/%s...\n' "$directory" "$branch"
-    git -C "$directory" fetch origin
-    remote_branch=$(git -C "$directory" ls-remote --heads origin "refs/heads/$branch")
-    if [[ -z "$remote_branch" ]]; then
-        printf 'Origin has no %s branch yet; nothing to pull.\n' "$branch"
-        return
-    fi
-    git -C "$directory" -c merge.autoStash=false -c rebase.autoStash=false pull --ff-only --no-rebase origin "$branch"
-}
-
-sync_frontend() {
-    local project="$1" repository="${2:-https://github.com/Victoras23/impact_2_year_fe.git}" directory
-    directory="$project/frontend"
-    if [[ ! -e "$directory" ]]; then
-        git clone --branch main -- "$repository" "$directory"
-    else
-        [[ -e "$directory/.git" ]] || fail 'frontend exists but is not a Git clone. Rename that folder and retry; your files were retained.'
-        [[ "$(git -C "$directory" remote get-url origin)" == "$repository" ]] ||
-            fail 'frontend has an unexpected origin. Move it aside or restore its expected origin before retrying.'
-        [[ "$(git -C "$directory" symbolic-ref --quiet --short HEAD)" == main ]] ||
-            fail 'Switch the frontend repository to main before updating.'
-    fi
-    sync_origin "$directory"
-    [[ -s "$directory/index.html" ]] || fail 'The frontend repository has no usable index.html. Check its main branch.'
-}
-
-
 download() {
     curl --fail --location --show-error --silent --retry 3 --connect-timeout 30 --max-time 600 \
         --proto '=https' --proto-redir '=https' "$1" --output "$2"
@@ -242,7 +198,7 @@ check_lessons() {
     [[ -f "$environment" ]] || fail 'Run bash setup.sh first.'
     source "$environment"
     printf 'Checking all lesson answers. All Lessons 1-4 solutions are included.\n'
-    exec "$MAVEN_HOME/bin/mvn" -f "$PWD/pom.xml" --batch-mode --no-transfer-progress -Plesson-check test
+    exec "$MAVEN_HOME/bin/mvn" -f "$PWD/pom.xml" --batch-mode --no-transfer-progress test
 }
 
 

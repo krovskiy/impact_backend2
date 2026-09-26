@@ -10,61 +10,6 @@ function Invoke-Checked {
     if ($LASTEXITCODE -ne 0) { throw "$Command failed (exit $LASTEXITCODE). Fix the error above and run setup again." }
 }
 
-function Sync-Origin {
-    param([string]$Directory)
-    if (-not (Test-Path -LiteralPath (Join-Path $Directory '.git'))) {
-        Write-Host 'No Git history in this folder yet; skipping its origin update.'
-        return
-    }
-    if (@(& git -C $Directory remote) -notcontains 'origin') {
-        Write-Host 'No origin configured yet; skipping its update.'
-        return
-    }
-    $branch = & git -C $Directory symbolic-ref --quiet --short HEAD
-    if ($LASTEXITCODE -ne 0) { throw "Detached HEAD in $Directory. Switch to a branch before updating." }
-    foreach ($state in @('MERGE_HEAD', 'CHERRY_PICK_HEAD', 'REVERT_HEAD', 'rebase-merge', 'rebase-apply', 'BISECT_LOG')) {
-        $statePath = & git -C $Directory rev-parse --git-path $state
-        if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect repository state.' }
-        if (-not [IO.Path]::IsPathRooted($statePath)) { $statePath = Join-Path $Directory $statePath }
-        if (Test-Path -LiteralPath $statePath) { throw "Finish or abort the Git operation in $Directory before updating." }
-    }
-    Write-Host "Updating $Directory from origin/$branch..."
-    Invoke-Checked git @('-C', $Directory, 'fetch', 'origin')
-    $remoteBranch = @(& git -C $Directory ls-remote --heads origin "refs/heads/$branch")
-    if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect origin branches.' }
-    if ($remoteBranch.Count -eq 0) {
-        Write-Host "Origin has no $branch branch yet; nothing to pull."
-        return
-    }
-    # Disable automatic stashes/rebases even when enabled in global Git config.
-    Invoke-Checked git @('-C', $Directory, '-c', 'merge.autoStash=false', '-c', 'rebase.autoStash=false',
-        'pull', '--ff-only', '--no-rebase', 'origin', $branch)
-}
-
-function Sync-Frontend {
-    param([string]$ProjectRoot, [string]$RepositoryUrl = 'https://github.com/Victoras23/impact_2_year_fe.git')
-    $directory = Join-Path $ProjectRoot 'frontend'
-    if (-not (Test-Path -LiteralPath $directory)) {
-        Invoke-Checked git @('clone', '--branch', 'main', '--', $RepositoryUrl, $directory)
-    } else {
-        if (-not (Test-Path -LiteralPath (Join-Path $directory '.git'))) {
-            throw 'frontend already exists but is not a Git clone. Rename that folder and retry; your files were retained.'
-        }
-        $origin = & git -C $directory remote get-url origin
-        if ($LASTEXITCODE -ne 0 -or $origin -cne $RepositoryUrl) {
-            throw 'frontend has an unexpected origin. Move it aside or restore its expected origin before retrying.'
-        }
-        $branch = & git -C $directory symbolic-ref --quiet --short HEAD
-        if ($LASTEXITCODE -ne 0 -or $branch -ne 'main') { throw 'Switch the frontend repository to main before updating.' }
-    }
-    Sync-Origin $directory
-    $index = Join-Path $directory 'index.html'
-    if (-not (Test-Path -LiteralPath $index -PathType Leaf) -or (Get-Item -LiteralPath $index).Length -eq 0) {
-        throw 'The frontend repository has no usable index.html. Check its main branch before continuing.'
-    }
-}
-
-
 function Get-ToolchainRoot {
     return Join-Path $env:LOCALAPPDATA 'impact-backend\toolchains'
 }
@@ -241,13 +186,13 @@ function Install-Memurai {
         return
     }
     if ($state -eq 'occupied') {
-        throw 'Port 6379 is occupied or Redis requires authentication. Check your existing server and application-local.properties; setup will not replace its configuration.'
+        throw 'Port 6379 is occupied or Redis requires authentication. Check your existing server configuration; setup will not replace its configuration.'
     }
     $cli = Get-MemuraiCli
     if (-not $service -and -not $cli) {
         $architecture = $env:PROCESSOR_ARCHITEW6432
         if (-not $architecture) { $architecture = $env:PROCESSOR_ARCHITECTURE }
-        if ($architecture -ne 'AMD64') { throw 'Automatic Memurai installation requires x64 Windows. See database/README.md for other Redis options.' }
+        if ($architecture -ne 'AMD64') { throw 'Automatic Memurai installation requires x64 Windows. See README.md for other Redis options.' }
         if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
             throw 'Install/update App Installer from Microsoft Store, then rerun .\setup.cmd redis.'
         }
@@ -307,7 +252,7 @@ if ($CheckLessons) {
     try {
         Enable-Toolchain
         Write-Host 'Checking all lesson answers. All Lessons 1-4 solutions are included.'
-        Invoke-Checked mvn @('-f', (Join-Path (Split-Path -Parent $PSScriptRoot) 'pom.xml'), '--batch-mode', '--no-transfer-progress', '-Plesson-check', 'test')
+        Invoke-Checked mvn @('-f', (Join-Path (Split-Path -Parent $PSScriptRoot) 'pom.xml'), '--batch-mode', '--no-transfer-progress', 'test')
         exit 0
     } catch {
         Write-Host $_.Exception.Message -ForegroundColor Red

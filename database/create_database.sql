@@ -1,2 +1,0 @@
--- H2 is embedded. No CREATE DATABASE command or external server is needed.
--- Run: mvn spring-boot:run
