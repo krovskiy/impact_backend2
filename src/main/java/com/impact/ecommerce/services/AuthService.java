@@ -47,6 +47,13 @@ public class AuthService {
         return response(user);
     }
 
+    // Lesson 4 L4-1: the service looks up the current account; the controller only routes HTTP.
+    @Transactional(readOnly = true)
+    public MeResponse me(String email) {
+        User user = users.findByEmail(email).orElseThrow(this::badCredentials);
+        return new MeResponse(user.getEmail(), user.getRole().name());
+    }
+
     private String hashPassword(String rawPassword) {
         // Answer Lesson 2 L2-3: return the BCrypt hash using passwordEncoder.
         // Never return rawPassword.

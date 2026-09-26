@@ -216,7 +216,7 @@ redis_main() {
     trap '[[ -z "${DOWNLOAD_DIR:-}" ]] || rm -rf -- "$DOWNLOAD_DIR"' EXIT
     install_platform_tools "$platform"
     install_redis "$platform"
-    printf '%s\n' 'Pentru lectia 3: seteaza spring.cache.type=redis in application-local.properties si reporneste backend-ul.'
+    printf '%s\n' 'Pentru lectia 3: porneste explicit cu --spring.cache.type=redis si reporneste backend-ul.'
 }
 
 setup_main() {
@@ -226,26 +226,22 @@ setup_main() {
     DOWNLOAD_DIR=$(mktemp -d "${TMPDIR:-/tmp}/impact-setup.XXXXXXXX")
     trap '[[ -z "${DOWNLOAD_DIR:-}" ]] || rm -rf -- "$DOWNLOAD_DIR"' EXIT
     install_platform_tools "$platform"
-    install_redis "$platform"
-    sync_frontend "$PWD"
     install_toolchains "$platform"
     "$JAVA_HOME/bin/java" "$PWD/scripts/CheckPom.java" "$PWD/pom.xml"
     printf '%s\n' 'Building and running tests. The first run downloads dependencies...'
     "$MAVEN_HOME/bin/mvn" --batch-mode --no-transfer-progress clean verify
-    printf '\nSUCCESS: setup complete.\nNext: prepare PostgreSQL (bash setup.sh db or database/README.md), then bash setup.sh run\nThen open http://localhost:8080/\n'
+    printf '\nSUCCESS: setup complete.\nNext: bash setup.sh run\nThen open http://localhost:8080/\n'
 }
 
 database_main() {
-    command -v docker >/dev/null 2>&1 || fail 'Install/open Docker Desktop (or Docker Engine + Compose on Debian), or follow database/README.md for native PostgreSQL.'
-    docker compose -f "$PWD/database/compose.yaml" up -d --wait
-    printf 'PostgreSQL is ready. Next: bash setup.sh run\n'
+    printf 'H2 starts inside Java automatically. Next: bash setup.sh run\n'
 }
 
 check_lessons() {
     local environment="$HOME/.local/share/impact-backend/toolchains/env.sh"
     [[ -f "$environment" ]] || fail 'Run bash setup.sh first.'
     source "$environment"
-    printf 'Checking all lesson answers. Failures are expected until the exercises are complete.\n'
+    printf 'Checking all lesson answers. All Lessons 1-4 solutions are included.\n'
     exec "$MAVEN_HOME/bin/mvn" -f "$PWD/pom.xml" --batch-mode --no-transfer-progress -Plesson-check test
 }
 
@@ -258,9 +254,7 @@ start_main() {
     environment="$HOME/.local/share/impact-backend/toolchains/env.sh"
     [[ -f "$environment" ]] || fail 'Run bash setup.sh first.'
     source "$environment"
-    sync_frontend "$PWD"
     [[ -x "$JAVA_HOME/bin/javac" && -x "$MAVEN_HOME/bin/mvn" ]] || fail 'Java/Maven setup is incomplete. Rerun bash setup.sh.'
     printf 'Once Spring reports Started, open http://localhost:%s/\nKeep this window open. Press Ctrl+C to stop.\nIf the port is busy, try: bash setup.sh run 8081\n' "$port"
-    "$JAVA_HOME/bin/java" "$PWD/scripts/CheckPom.java" "$PWD/pom.xml"
     exec "$MAVEN_HOME/bin/mvn" -f "$PWD/pom.xml" spring-boot:run "-Dspring-boot.run.arguments=--server.port=$port"
 }

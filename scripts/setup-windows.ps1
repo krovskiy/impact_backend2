@@ -70,6 +70,8 @@ function Get-ToolchainRoot {
 }
 
 function Enable-Toolchain {
+    param([switch]$Managed)
+    if (-not $Managed -and (Get-Command mvn -ErrorAction SilentlyContinue) -and (Get-Command javac -ErrorAction SilentlyContinue)) { return }
     $root = Get-ToolchainRoot
     $env:JAVA_HOME = Join-Path $root 'jdk-21'
     $env:MAVEN_HOME = Join-Path $root 'apache-maven-3.9.16'
@@ -150,9 +152,9 @@ function Install-Toolchains {
         if (-not (Test-Path -LiteralPath "$source\bin\mvn.cmd")) { throw 'Maven archive is incomplete.' }
         Move-Item -LiteralPath $source -Destination $mavenDir
     }
-    Enable-Toolchain
+    Enable-Toolchain -Managed
     Invoke-Checked "$env:JAVA_HOME\bin\javac.exe" @('-version')
-    Invoke-Checked "$env:MAVEN_HOME\bin\mvn.cmd" @('--version')
+    Invoke-Checked mvn @('--version')
     Save-ToolchainEnvironment
 }
 
@@ -289,7 +291,7 @@ Set-Location -LiteralPath (Split-Path -Parent $PSScriptRoot)
 if ($Redis) {
     try {
         Install-Memurai -RequireNative
-        Write-Host 'To enable Lesson 3 caching, set spring.cache.type=redis in application-local.properties and restart the backend.'
+        Write-Host 'To enable Lesson 3 caching, pass --spring.cache.type=redis as a Spring Boot argument and restart the backend.'
         exit 0
     } catch {
         Write-Host $_.Exception.Message -ForegroundColor Red
@@ -297,25 +299,15 @@ if ($Redis) {
     }
 }
 if ($Database) {
-    try {
-        if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
-            throw 'Install/open Docker Desktop, or follow database/README.md for native PostgreSQL.'
-        }
-        Invoke-Checked docker @('compose', '-f', (Join-Path (Split-Path -Parent $PSScriptRoot) 'database\compose.yaml'), 'up', '-d', '--wait')
-        Write-Host 'PostgreSQL is ready. Next: .\setup.cmd run'
-        exit 0
-    } catch {
-        Write-Host $_.Exception.Message -ForegroundColor Red
-        Write-Host 'If port 5432 is occupied, use your existing PostgreSQL: database/README.md.'
-        exit 1
-    }
+    Write-Host 'H2 starts inside Java automatically. Next: .\setup.cmd run'
+    exit 0
 }
 
 if ($CheckLessons) {
     try {
         Enable-Toolchain
-        Write-Host 'Checking all lesson answers. Failures are expected until the exercises are complete.'
-        Invoke-Checked "$env:MAVEN_HOME\bin\mvn.cmd" @('-f', (Join-Path (Split-Path -Parent $PSScriptRoot) 'pom.xml'), '--batch-mode', '--no-transfer-progress', '-Plesson-check', 'test')
+        Write-Host 'Checking all lesson answers. All Lessons 1-4 solutions are included.'
+        Invoke-Checked mvn @('-f', (Join-Path (Split-Path -Parent $PSScriptRoot) 'pom.xml'), '--batch-mode', '--no-transfer-progress', '-Plesson-check', 'test')
         exit 0
     } catch {
         Write-Host $_.Exception.Message -ForegroundColor Red
@@ -328,15 +320,13 @@ if ($Run) {
     try {
         Enable-Toolchain
         $project = Split-Path -Parent $PSScriptRoot
-        Sync-Frontend $project
-        Invoke-Checked "$env:JAVA_HOME\bin\java.exe" @("$PSScriptRoot\CheckPom.java", "$project\pom.xml")
         Write-Host "Once Spring reports Started, open http://localhost:$Port/"
-        Write-Host 'Keep this window open. Press Ctrl+C to stop. PostgreSQL must be running (setup.cmd db, or native PostgreSQL).'
-        Invoke-Checked "$env:MAVEN_HOME\bin\mvn.cmd" @('-f', "$project\pom.xml", 'spring-boot:run', "-Dspring-boot.run.arguments=--server.port=$Port")
+        Write-Host 'Keep this window open. Press Ctrl+C to stop. H2 and the local cache start automatically.'
+        Invoke-Checked mvn @('-f', "$project\pom.xml", 'spring-boot:run', "-Dspring-boot.run.arguments=--server.port=$Port")
         exit 0
     } catch {
         Write-Host $_.Exception.Message -ForegroundColor Red
-        Write-Host 'Check the error above: PostgreSQL must be running with the configured database and password. For a busy HTTP port, use .\setup.cmd run 8081'
+        Write-Host 'Check the error above: Use Java 21 and Maven. For a busy HTTP port, use .\setup.cmd run 8081'
         exit 1
     }
 }
@@ -347,18 +337,16 @@ $ProgressPreference = 'SilentlyContinue'
 $script:DownloadDir = $null
 Push-Location -LiteralPath (Split-Path -Parent $PSScriptRoot)
 try {
-    Write-Host 'SETUP: Java 21, Maven, Git, Memurai/Redis and build.' -ForegroundColor Cyan
+    Write-Host 'SETUP: Java 21, Maven, Git and build (H2/local cache).' -ForegroundColor Cyan
     Install-WindowsCommand git 'Git.Git'
-    Install-Memurai
-    Sync-Frontend (Get-Location).Path
     $script:DownloadDir = Join-Path ([IO.Path]::GetTempPath()) ("impact-setup-" + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $script:DownloadDir | Out-Null
     Install-Toolchains
     Invoke-Checked "$env:JAVA_HOME\bin\java.exe" @("$PSScriptRoot\CheckPom.java", (Join-Path (Get-Location) "pom.xml"))
     Write-Host 'Building the project and running its tests. The first run downloads dependencies...'
-    Invoke-Checked "$env:MAVEN_HOME\bin\mvn.cmd" @('--batch-mode', '--no-transfer-progress', 'clean', 'verify')
+    Invoke-Checked mvn @('--batch-mode', '--no-transfer-progress', 'clean', 'verify')
     Write-Host "SUCCESS: setup complete." -ForegroundColor Green
-    Write-Host 'Next: prepare PostgreSQL (.\setup.cmd db or database/README.md), run .\setup.cmd run, then open http://localhost:8080/'
+    Write-Host 'Next: run .\setup.cmd run, then open http://localhost:8080/'
 } catch {
     Write-Host "SETUP STOPPED: $($_.Exception.Message)" -ForegroundColor Red
     Write-Host 'Fix the message above and rerun setup.cmd.'

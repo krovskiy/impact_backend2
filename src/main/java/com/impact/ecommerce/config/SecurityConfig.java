@@ -56,7 +56,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/products").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/products/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasRole("ADMIN")
-                        .requestMatchers("/api/test/protected").authenticated()
+                        // Lesson 4: /me requires a verified identity for either USER or ADMIN.
+                        .requestMatchers("/api/auth/me", "/api/test/protected").authenticated()
                         .anyRequest().denyAll())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();

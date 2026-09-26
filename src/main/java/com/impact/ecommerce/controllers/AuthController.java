@@ -18,11 +18,20 @@ public class AuthController {
     private final AuthService auth;
     public AuthController(AuthService auth) { this.auth = auth; }
 
+    // Lesson 4 L4-1: SRP - delegate account lookup and DTO construction to AuthService.
+    @Operation(summary = "Get the authenticated account")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponse(responseCode = "200", description = "Email and role of the current account")
+    @ApiResponse(responseCode = "401", description = "Authentication required or account no longer exists")
+    @GetMapping("/me")
+    public MeResponse me(org.springframework.security.core.Authentication authentication) {
+        return auth.me(authentication.getName());
+    }
+
     @Operation(summary = "Register a USER account")
     @ApiResponse(responseCode = "201", description = "User and token created")
     @ApiResponse(responseCode = "400", description = "Invalid email or password")
     @ApiResponse(responseCode = "409", description = "Email already exists")
-    @ApiResponse(responseCode = "501", description = "Authentication exercise unfinished")
     @ApiResponse(responseCode = "500", description = "Unexpected server error")
     @ApiResponse(responseCode = "401", description = "Missing/invalid bearer token, or invalid token supplied to a public route")
     @PostMapping("/register")
@@ -34,7 +43,6 @@ public class AuthController {
     @ApiResponse(responseCode = "200", description = "Token returned")
     @ApiResponse(responseCode = "400", description = "Invalid request")
     @ApiResponse(responseCode = "401", description = "Invalid credentials")
-    @ApiResponse(responseCode = "501", description = "JWT exercise unfinished")
     @ApiResponse(responseCode = "500", description = "Unexpected server error")
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody LoginRequest request) { return auth.login(request); }

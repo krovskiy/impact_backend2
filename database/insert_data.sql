@@ -1,11 +1,14 @@
+-- Lesson 2: demo data, compatible with embedded H2. Safe to run again.
 -- Classroom accounts only. BCrypt hashes: admin123 / user123.
--- Rerunning does not reset existing users' passwords, roles, or edited products.
-INSERT INTO categories(name) VALUES ('Electronics'), ('Books'), ('Clothing')
-ON CONFLICT (name) DO NOTHING;
-INSERT INTO users(email, password_hash, role) VALUES
-('admin@impact.md', '$2a$10$U2rlHqSx/Wzir50GGUa.z.lxjRrUM3Zr9N4jbPC4zA8L53SgF/E4O', 'ADMIN'),
-('user@impact.md', '$2a$10$NkM5BIa5cK9RDUaJo.e8oOp3CfMNDze8HsLbkhMzC3AcM18h8SoYO', 'USER')
-ON CONFLICT (email) DO NOTHING;
+INSERT INTO categories(name) SELECT 'Electronics' WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name='Electronics');
+INSERT INTO categories(name) SELECT 'Books' WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name='Books');
+INSERT INTO categories(name) SELECT 'Clothing' WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name='Clothing');
+INSERT INTO users(email, password_hash, role)
+SELECT 'admin@impact.md', '$2a$10$U2rlHqSx/Wzir50GGUa.z.lxjRrUM3Zr9N4jbPC4zA8L53SgF/E4O', 'ADMIN'
+WHERE NOT EXISTS (SELECT 1 FROM users WHERE email='admin@impact.md');
+INSERT INTO users(email, password_hash, role)
+SELECT 'user@impact.md', '$2a$10$NkM5BIa5cK9RDUaJo.e8oOp3CfMNDze8HsLbkhMzC3AcM18h8SoYO', 'USER'
+WHERE NOT EXISTS (SELECT 1 FROM users WHERE email='user@impact.md');
 INSERT INTO products(name, description, price, stock, category_id)
 SELECT seed.name, seed.description, seed.price, seed.stock, c.id
 FROM (VALUES

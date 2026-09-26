@@ -24,7 +24,7 @@ class Lesson1BackendApplicationTests {
                 .andExpect(forwardedUrl("index.html"));
         mvc.perform(get("/index.html")).andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
-                .andExpect(content().bytes(Files.readAllBytes(Path.of("frontend", "index.html"))));
+                .andExpect(content().bytes(Files.readAllBytes(Path.of("src", "main", "resources", "static", "index.html"))));
     }
 
     @Test

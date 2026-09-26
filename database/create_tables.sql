@@ -1,4 +1,4 @@
--- Run against "e-commerce". Safe to rerun; existing data is never dropped.
+-- Lesson 2: H2 creates these tables automatically at application startup.
 CREATE TABLE IF NOT EXISTS categories (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE

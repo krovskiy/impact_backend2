@@ -14,7 +14,7 @@ public class ApiExceptionHandler {
             org.springframework.dao.QueryTimeoutException.class})
     ResponseEntity<Map<String, String>> cacheUnavailable(Exception error) {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                .body(Map.of("error", "Redis is unavailable. Start Redis, or set spring.cache.type=none for earlier lessons."));
+                .body(Map.of("error", "Redis is unavailable. Start Redis, or set spring.cache.type=simple for local caching."));
     }
 
     @ExceptionHandler(ResponseStatusException.class)

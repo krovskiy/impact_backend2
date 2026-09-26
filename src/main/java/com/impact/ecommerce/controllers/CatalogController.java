@@ -34,7 +34,6 @@ public class CatalogController {
     @Operation(summary = "List products, optionally filtered by category")
     @ApiResponse(responseCode = "200", description = "Product DTOs (empty list when no matches)")
     @ApiResponse(responseCode = "400", description = "Invalid category ID")
-    @ApiResponse(responseCode = "501", description = "Category filter exercise unfinished")
     @ApiResponse(responseCode = "503", description = "Redis unavailable")
     @ApiResponse(responseCode = "500", description = "Unexpected server error")
     @ApiResponse(responseCode = "401", description = "Missing/invalid bearer token, or invalid token supplied to a public route")

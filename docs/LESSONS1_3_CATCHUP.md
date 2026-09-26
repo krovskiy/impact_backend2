@@ -1,3 +1,7 @@
+> **Actualizare pentru main (lecțiile 1–4):** soluțiile sunt deja completate. Pornește cu `mvn spring-boot:run`, verifică prin `mvn test`. H2 și cache-ul local pornesc automat; nu instala PostgreSQL/Redis și nu schimba pe `solution`. [Instrucțiuni actuale](../README.md) · [Hartă soluții](LESSON_SOLUTIONS.md) · [Lecția 4](LESSON4_TEACHER.md).
+>
+> **Material istoric mai jos:** pașii vechi de instalare PostgreSQL/Redis, TODO-urile și comparațiile main/solution nu mai descriu configurarea curentă. Exemplele de predare se pot folosi pentru explicarea soluțiilor.
+
 # Lecțiile 1–3: de la exerciții la soluție
 
 Ghid pentru recuperarea rapidă la clasă. Mai întâi înțelegem structura, apoi modificăm codul în ordine. Versiunea aceasta corespunde proiectului până la lecția 3; lecțiile următoare pot adăuga alte fișiere.

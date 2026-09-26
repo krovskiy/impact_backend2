@@ -15,10 +15,9 @@ public class CacheController {
     public CacheController(CatalogCacheService cache) { this.cache = cache; }
 
     @Operation(summary = "Clear product and category caches",
-            description = "Public local classroom action used by the supplied frontend. Does not modify PostgreSQL.")
+            description = "Public local classroom action used by the supplied frontend. Does not modify the H2 database.")
     @ApiResponse(responseCode = "200", description = "Catalog cache clear requested (no-op when caching is disabled)")
     @ApiResponse(responseCode = "401", description = "An invalid or expired bearer token was supplied")
-    @ApiResponse(responseCode = "501", description = "Complete L3-4 first")
     @ApiResponse(responseCode = "503", description = "Redis is unavailable")
     @PostMapping("/clear")
     public Map<String, String> clear() {

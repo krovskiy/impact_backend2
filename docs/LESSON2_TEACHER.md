@@ -1,3 +1,7 @@
+> **Actualizare pentru main (lecțiile 1–4):** soluțiile sunt deja completate. Pornește cu `mvn spring-boot:run`, verifică prin `mvn test`. H2 și cache-ul local pornesc automat; nu instala PostgreSQL/Redis și nu schimba pe `solution`. [Instrucțiuni actuale](../README.md) · [Hartă soluții](LESSON_SOLUTIONS.md) · [Lecția 4](LESSON4_TEACHER.md).
+>
+> **Material istoric mai jos:** pașii vechi de instalare PostgreSQL/Redis, TODO-urile și comparațiile main/solution nu mai descriu configurarea curentă. Exemplele de predare se pot folosi pentru explicarea soluțiilor.
+
 # Lecția 2: recuperare rapidă și răspunsuri
 
 Pregătește [PostgreSQL](../database/README.md) înainte de oră. Instalarea nativă este potrivită calculatoarelor cu puțină memorie. Java rămâne **21**.

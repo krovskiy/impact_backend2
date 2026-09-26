@@ -17,12 +17,15 @@ public class ProductService {
     private final ProductRepository products;
     private final CategoryRepository categories;
 
-    public ProductService(ProductRepository products, CategoryRepository categories) {
+    private final ProductMapper mapper;
+
+    public ProductService(ProductRepository products, CategoryRepository categories, ProductMapper mapper) {
         this.products = products;
         this.categories = categories;
+        this.mapper = mapper;
     }
 
-    // Answer Lesson 3 L3-1: uncomment caching with a separate key for each category.
+    // Answer Lesson 3 L3-1: cache with a separate key for each category.
     @Cacheable(cacheNames = "products", key = "#categoryId != null ? #categoryId : 'all'")
     public List<ProductResponse> list(Long categoryId) {
         return selectProducts(categoryId).stream().map(this::toResponse).toList();
@@ -35,35 +38,32 @@ public class ProductService {
         return products.findByCategoryId(categoryId);
     }
 
+    // Lesson 4 homework: mapping has its own class; keep this method for existing callers.
     public ProductResponse toResponse(Product product) {
-        Category category = product.getCategory();
-        // Answer Lesson 2 L2-2: return the category name, or null if there is no category.
-        String categoryName = category == null ? null : category.getName();
-        return new ProductResponse(product.getId(), product.getName(), product.getDescription(),
-                product.getPrice(), product.getStock(), category == null ? null : category.getId(), categoryName);
+        return mapper.toResponse(product);
     }
 
-    // Answer Lesson 3 L3-2: uncomment caching for the category DTO list.
+    // Answer Lesson 3 L3-2: cache the category DTO list.
     @Cacheable(cacheNames = "categories", key = "'all'")
     public List<CategoryResponse> categories() {
         return categories.findAll().stream().map(c -> new CategoryResponse(c.getId(), c.getName())).toList();
     }
 
-    // Answer Lesson 3 L3-3: uncomment on ALL three writes to invalidate every filtered list.
+    // Answer Lesson 3 L3-3: all three writes invalidate every filtered list.
     @CacheEvict(cacheNames = "products", allEntries = true)
     @Transactional
     public ProductResponse create(CreateProductRequest request) {
         return toResponse(products.save(apply(new Product(), request)));
     }
 
-    // Answer Lesson 3 L3-3: uncomment on ALL three writes to invalidate every filtered list.
+    // Answer Lesson 3 L3-3: all three writes invalidate every filtered list.
     @CacheEvict(cacheNames = "products", allEntries = true)
     @Transactional
     public ProductResponse update(Long id, CreateProductRequest request) {
         return toResponse(products.save(apply(find(id), request)));
     }
 
-    // Answer Lesson 3 L3-3: uncomment on ALL three writes to invalidate every filtered list.
+    // Answer Lesson 3 L3-3: all three writes invalidate every filtered list.
     @CacheEvict(cacheNames = "products", allEntries = true)
     @Transactional
     public void delete(Long id) { products.delete(find(id)); }

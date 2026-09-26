@@ -1,24 +1,10 @@
-# Lecția 1: lista de verificare
+# Lecția 1 — soluții incluse
 
-Proiectul este pregătit aproape complet. Codul Java este în `src/main/java/com/impact/ecommerce/`.
+Pornește cu `mvn spring-boot:run`. Nu este necesară configurarea unei baze externe.
 
-- [ ] În `config/CorsConfig.java`, permite originile browserului cu `allowedOriginPatterns("*")`.
-- [ ] Permite metodele GET, POST, PUT, PATCH, DELETE și OPTIONS.
-- [ ] În `controllers/PracticeController.java`, înlocuiește răspunsurile TODO cu textele de mai jos.
-- [ ] Repornește backend-ul și testează toate cele cinci metode la `/api/practice` în Postman.
-- [ ] Pentru scrieri, trimite JSON brut cu `Content-Type: application/json`.
-- [ ] Deschide http://localhost:8080/ și folosește consola lecției 1. Adresa API este `http://localhost:8080/api/practice`.
-- [ ] Verifică și browserul: Postman singur nu demonstrează că regulile CORS funcționează.
-- [ ] Salvează modificările într-o ramură din repository-ul tău și deschide un PR.
+- `PracticeController`: GET, POST, PUT, PATCH și DELETE sunt completate, cu comentarii Lesson 1.
+- `CorsConfig`: toate metodele folosite la lecție sunt permise pentru originile locale.
+- `src/main/resources/static/index.html`: frontend inclus, accesibil la `/`.
+- Verificare: `mvn test` (include `Lesson1BackendApplicationTests`).
 
-Pentru corpul `{"name":"demo"}`, răspunsurile exacte sunt:
-
-```text
-GET    -> api initialised
-POST   -> youve posted: {"name":"demo"}
-PUT    -> your update is : {"name":"demo"}
-PATCH  -> you have updated the : {"name":"demo"}
-DELETE -> youve deleted : {"name":"demo"}
-```
-
-Nu traduce aceste texte: testele și frontend-ul le verifică exact.
+[Toate soluțiile](docs/LESSON_SOLUTIONS.md) · [Pornire](README.md)

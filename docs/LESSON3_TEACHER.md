@@ -1,3 +1,7 @@
+> **Actualizare pentru main (lecțiile 1–4):** soluțiile sunt deja completate. Pornește cu `mvn spring-boot:run`, verifică prin `mvn test`. H2 și cache-ul local pornesc automat; nu instala PostgreSQL/Redis și nu schimba pe `solution`. [Instrucțiuni actuale](../README.md) · [Hartă soluții](LESSON_SOLUTIONS.md) · [Lecția 4](LESSON4_TEACHER.md).
+>
+> **Material istoric mai jos:** pașii vechi de instalare PostgreSQL/Redis, TODO-urile și comparațiile main/solution nu mai descriu configurarea curentă. Exemplele de predare se pot folosi pentru explicarea soluțiilor.
+
 # Lecția 3: ghid pentru profesor și răspunsuri
 
 Bazat pe prezentarea și tema furnizate: Redis, cache-aside, TTL de 60 de secunde, invalidare, Swagger/JWT și lucru prin ramuri/PR-uri. Regulile din materiale sunt exerciții pentru clasă, nu autorizații de modificare a protecției repository-ului.

@@ -34,7 +34,7 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- Lesson 2: all dependencies are prepared; students edit the numbered TODOs. -->
+        <!-- Lesson 2: completed JPA, validation, BCrypt and JWT solutions. -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
@@ -46,11 +46,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
@@ -72,7 +67,7 @@
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <scope>test</scope>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.security</groupId>
@@ -106,15 +101,6 @@
                 <includes>
                     <include>create_tables.sql</include>
                     <include>insert_data.sql</include>
-                </includes>
-            </resource>
-            <!-- The upstream index bundles its own JavaScript/CSS. Never publish the Git checkout. -->
-            <resource>
-                <directory>${project.basedir}/frontend</directory>
-                <targetPath>static</targetPath>
-                <filtering>false</filtering>
-                <includes>
-                    <include>index.html</include>
                 </includes>
             </resource>
         </resources>
